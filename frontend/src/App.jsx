@@ -384,7 +384,7 @@ export default function App() {
                         <Text style={styles.leadItemArrow}>→</Text>
                       </TouchableOpacity>
                     )}
-                  </View>
+                  />
                 )}
               </View>
             )}
