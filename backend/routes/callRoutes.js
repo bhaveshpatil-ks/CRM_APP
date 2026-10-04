@@ -1,5 +1,6 @@
 import express from "express";
 import multer from "multer";
+import mongoose from "mongoose";
 import { Lead } from "../models/Lead.js";
 import { CallLog } from "../models/CallLog.js";
 import { analyzeCallAudio } from "../services/aiService.js";
@@ -30,63 +31,90 @@ callRouter.post("/analyze-recording", upload.single("recording"), async (req, re
 
     const cleanPhone = getCleanPhone(callerNumber);
 
-    // 1. Process audio via AI service
+    // 1. Process audio via AI service (Groq Whisper Turbo + Fast LLM)
     const aiResult = await analyzeCallAudio(req.file.buffer, req.file.mimetype);
 
-    // 2. Find or Auto-Create Contact / Lead (e.g. Rajesh)
-    let lead = await Lead.findOne({ normalizedPhone: cleanPhone });
+    // 2. Check if MongoDB is connected
+    const isDbConnected = mongoose.connection.readyState === 1;
 
-    if (!lead) {
-      lead = new Lead({
-        name: callerName || `Contact ${cleanPhone}`,
-        phone: callerNumber,
-        normalizedPhone: cleanPhone,
-        status: aiResult.leadStatus || "Warm",
-        totalCalls: 1
-      });
-    } else {
-      lead.totalCalls += 1;
-      lead.lastContactedAt = new Date();
-      lead.status = aiResult.leadStatus || lead.status;
-      if (callerName && lead.name.startsWith("Contact ")) {
-        lead.name = callerName;
-      }
-    }
+    let leadData = {
+      id: `lead_${cleanPhone}`,
+      name: callerName || `Contact ${cleanPhone}`,
+      phone: callerNumber,
+      status: aiResult.leadStatus || "Warm"
+    };
 
-    if (aiResult.detailedNotes?.suggestedFollowUp?.dueDate) {
-      lead.nextFollowUpAt = aiResult.detailedNotes.suggestedFollowUp.dueDate;
-    }
-
-    lead.notesTimeline.unshift({
-      date: new Date(),
-      headline: aiResult.exactSummary.headline
-    });
-
-    await lead.save();
-
-    // 3. Save the CallLog linked to Rajesh's Lead ID
-    const callLog = new CallLog({
-      leadId: lead._id,
+    let callData = {
+      id: `call_${Date.now()}`,
       callerNumber,
-      callerName: lead.name,
+      callerName: leadData.name,
       callDuration: Number(callDuration) || 0,
       callType: callType || "Incoming",
       exactSummary: aiResult.exactSummary,
       detailedNotes: aiResult.detailedNotes,
-      sentiment: aiResult.sentiment
-    });
+      sentiment: aiResult.sentiment,
+      transcript: aiResult.transcript || "",
+      provider: aiResult.provider || "Groq Whisper Turbo"
+    };
 
-    await callLog.save();
+    if (isDbConnected) {
+      let lead = await Lead.findOne({ normalizedPhone: cleanPhone });
 
-    return res.status(200).json({
-      success: true,
-      lead: {
+      if (!lead) {
+        lead = new Lead({
+          name: callerName || `Contact ${cleanPhone}`,
+          phone: callerNumber,
+          normalizedPhone: cleanPhone,
+          status: aiResult.leadStatus || "Warm",
+          totalCalls: 1
+        });
+      } else {
+        lead.totalCalls += 1;
+        lead.lastContactedAt = new Date();
+        lead.status = aiResult.leadStatus || lead.status;
+        if (callerName && lead.name.startsWith("Contact ")) {
+          lead.name = callerName;
+        }
+      }
+
+      if (aiResult.detailedNotes?.suggestedFollowUp?.dueDate) {
+        lead.nextFollowUpAt = aiResult.detailedNotes.suggestedFollowUp.dueDate;
+      }
+
+      lead.notesTimeline.unshift({
+        date: new Date(),
+        headline: aiResult.exactSummary.headline
+      });
+
+      await lead.save();
+
+      const callLog = new CallLog({
+        leadId: lead._id,
+        callerNumber,
+        callerName: lead.name,
+        callDuration: Number(callDuration) || 0,
+        callType: callType || "Incoming",
+        exactSummary: aiResult.exactSummary,
+        detailedNotes: aiResult.detailedNotes,
+        sentiment: aiResult.sentiment
+      });
+
+      await callLog.save();
+
+      leadData = {
         id: lead._id,
         name: lead.name,
         phone: lead.phone,
         status: lead.status
-      },
-      call: callLog
+      };
+      callData = callLog;
+    }
+
+    return res.status(200).json({
+      success: true,
+      persistedToDb: isDbConnected,
+      lead: leadData,
+      call: callData
     });
   } catch (err) {
     console.error("Error analyzing call:", err);
