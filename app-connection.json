@@ -1,6 +1,0 @@
-{
-  "appName": "AI CALL CRM",
-  "connectedWebsiteFolder": "../CALL app",
-  "websiteClientUrl": "http://localhost:5173/",
-  "apiServerUrl": "http://localhost:4000/"
-}
