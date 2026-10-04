@@ -29,7 +29,7 @@ export async function saveLocalLeads(leads) {
   }
 }
 
-// 3. Attach call analysis directly to contact's local history (e.g. Rajesh or new caller)
+// 3. Attach call analysis directly to contact's local history (e.g. Any customer)
 export async function addOrUpdateLeadFromCall(callData) {
   try {
     const leads = await getLocalLeads();
@@ -101,7 +101,7 @@ export async function getLocalSettings() {
     return raw
       ? JSON.parse(raw)
       : {
-          backendUrl: "http://10.0.2.2:4000", // Android Emulator localhost bridge
+          backendUrl: "http://10.0.2.2:4000",
           recordingStoragePath: "/storage/emulated/0/Recordings/Call",
           autoSyncCalls: true,
           skipShortCalls: true
