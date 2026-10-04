@@ -19,12 +19,16 @@ import {
   addOrUpdateLeadFromCall,
   clearLocalData,
   getLocalSettings,
-  saveLocalSettings
+  saveLocalSettings,
+  getStoredSession,
+  saveUserSession,
+  clearUserSession,
+  deleteLeadById
 } from "./storage";
 import { requestAllPermissions, checkPermissionsStatus } from "./permissions";
-import { sendRecordingForAnalysis } from "./api";
+import { sendRecordingForAnalysis, authenticateCompany } from "./api";
 
-// Crisp Monochrome SVG-style geometric icons for premium native aesthetic
+// Monochrome SVG-style geometric icons matching design specification
 function HomeIcon({ active }) {
   const color = active ? "#000000" : "#8e8e93";
   return (
@@ -97,10 +101,7 @@ const iconStyles = StyleSheet.create({
     borderRadius: 3.5,
     overflow: "hidden"
   },
-  calendarHeader: {
-    height: 4,
-    width: "100%"
-  },
+  calendarHeader: { height: 4, width: "100%" },
   calendarDots: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -128,20 +129,35 @@ const iconStyles = StyleSheet.create({
 });
 
 export default function App() {
+  // Navigation & State
   const [activeTab, setActiveTab] = useState("home"); // 'home' | 'history' | 'insights' | 'profile'
+  const [session, setSession] = useState(null); // Authenticated User Session
   const [leads, setLeads] = useState([]);
   const [selectedLead, setSelectedLead] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [settings, setSettings] = useState({
     backendUrl: "http://10.0.2.2:4000",
+    websiteUrl: "http://localhost:5173",
     recordingStoragePath: "/storage/emulated/0/Recordings/Call",
-    autoSyncCalls: true
+    autoSyncCalls: true,
+    skipShortCalls: true,
+    autoDraftWhatsApp: true
   });
 
+  // Login Form State
+  const [loginIdentifier, setLoginIdentifier] = useState("CALL-240001");
+  const [loginPassword, setLoginPassword] = useState("demo123");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // App Features State
   const [permissionsState, setPermissionsState] = useState({ allGranted: false, statuses: {} });
   const [isProcessing, setIsProcessing] = useState(false);
   const [latestCallAnalysis, setLatestCallAnalysis] = useState(null);
   const [showQuickActionModal, setShowQuickActionModal] = useState(false);
+  const [showAddLeadModal, setShowAddLeadModal] = useState(false);
+  const [newLeadForm, setNewLeadForm] = useState({ name: "", phone: "", company: "" });
 
   useEffect(() => {
     loadInitialData();
@@ -149,8 +165,12 @@ export default function App() {
   }, []);
 
   const loadInitialData = async () => {
+    const userSession = await getStoredSession();
+    if (userSession) setSession(userSession);
+
     const storedLeads = await getLocalLeads();
     setLeads(storedLeads);
+
     const storedSettings = await getLocalSettings();
     setSettings(storedSettings);
   };
@@ -168,7 +188,43 @@ export default function App() {
     }
   };
 
-  const handleProcessRecording = async (testNumber = "+91 98200 11223", testName = "Customer Contact") => {
+  // Connected Login handler
+  const handleLogin = async () => {
+    setIsLoggingIn(true);
+    try {
+      const result = await authenticateCompany({
+        backendUrl: settings.backendUrl,
+        identifier: loginIdentifier,
+        password: loginPassword
+      });
+
+      await saveUserSession(result);
+      setSession(result);
+      setShowLoginModal(false);
+      Alert.alert("Welcome", `Logged in as ${result.user?.companyName || result.user?.name || "Company Admin"}`);
+    } catch (err) {
+      Alert.alert("Login Failed", err.message);
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: async () => {
+          await clearUserSession();
+          setSession(null);
+        }
+      }
+    ]);
+  };
+
+  // Process / Ingest a Call Recording
+  const handleProcessRecording = async (testNumber = "+91 98200 11223", testName = "Priya Sharma") => {
     setIsProcessing(true);
     setShowQuickActionModal(false);
     try {
@@ -203,14 +259,56 @@ export default function App() {
       };
 
       setLatestCallAnalysis(callData);
-      const updatedLeads = await addOrUpdateLeadFromCall(callData);
-      setLeads(updatedLeads);
+      const updatedLead = await addOrUpdateLeadFromCall(callData);
+      const updatedList = await getLocalLeads();
+      setLeads(updatedList);
       setActiveTab("home");
     } catch (err) {
       Alert.alert("Analysis Failed", err.message || "Failed to process audio recording with AI engine.");
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Add Contact Manually
+  const handleSaveManualLead = async () => {
+    if (!newLeadForm.name || !newLeadForm.phone) {
+      Alert.alert("Missing Fields", "Please enter both contact name and phone number.");
+      return;
+    }
+
+    const newLead = {
+      id: `lead_${Date.now()}`,
+      name: newLeadForm.name,
+      phone: newLeadForm.phone,
+      company: newLeadForm.company || "Direct Contact",
+      status: "New",
+      totalCalls: 0,
+      createdAt: new Date().toISOString(),
+      lastContactedAt: null,
+      calls: []
+    };
+
+    const updated = [newLead, ...leads];
+    await saveLocalLeads(updated);
+    setLeads(updated);
+    setNewLeadForm({ name: "", phone: "", company: "" });
+    setShowAddLeadModal(false);
+  };
+
+  const handleDeleteLead = async (id) => {
+    Alert.alert("Delete Contact", "Remove this contact from local device storage?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          const updated = await deleteLeadById(id);
+          setLeads(updated);
+          setSelectedLead(null);
+        }
+      }
+    ]);
   };
 
   const handleClearAll = async () => {
@@ -229,29 +327,48 @@ export default function App() {
     ]);
   };
 
-  const filteredLeads = leads.filter(
-    (l) =>
+  const filteredLeads = leads.filter((l) => {
+    const matchesSearch =
       l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.phone.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      l.phone.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "All" || l.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f7f7f8" />
 
-      {/* TOP BAR: Clean, Light Studio Header */}
+      {/* TOP BAR: Clean, Light Header with Website Sync & Login Status */}
       <View style={styles.topBar}>
         <View>
           <Text style={styles.brandTitle}>Call Intelligence</Text>
-          <Text style={styles.brandSubtitle}>Private On-Device Engine</Text>
+          <Text style={styles.brandSubtitle}>
+            {session ? session.user?.companyName || "Connected to Website" : "Private On-Device Engine"}
+          </Text>
         </View>
-        <View style={styles.liveIndicator}>
-          <View style={styles.liveDot} />
-          <Text style={styles.liveText}>Ready</Text>
-        </View>
+
+        {session ? (
+          <TouchableOpacity
+            style={styles.userBadge}
+            onPress={handleLogout}
+            activeOpacity={0.8}
+          >
+            <View style={styles.liveDot} />
+            <Text style={styles.userBadgeText}>{session.user?.appUserId || "Online"}</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.loginPill}
+            onPress={() => setShowLoginModal(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.loginPillText}>Sign In</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      {/* MAIN CONTENT VIEWPORT */}
+      {/* MAIN VIEWPORT */}
       <View style={styles.mainViewport}>
         {/* TAB 1: HOME (Hero CTA + Active Intelligence Overview) */}
         {activeTab === "home" && (
@@ -259,7 +376,7 @@ export default function App() {
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
           >
-            {/* 1. HERO PRODUCTIVITY CARD: Clear primary action */}
+            {/* HERO PRODUCTIVITY CARD */}
             <View style={styles.heroCard}>
               <View style={styles.heroContent}>
                 <Text style={styles.heroPre}>AUTO-CAPTURE ACTIVE</Text>
@@ -286,7 +403,37 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            {/* 2. RECENT ANALYSIS BREAKDOWN */}
+            {/* QUICK ACTIONS ROW */}
+            <View style={styles.quickActionsRow}>
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => setShowAddLeadModal(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.quickActionIcon}>＋</Text>
+                <Text style={styles.quickActionText}>New Contact</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => Linking.openURL(settings.websiteUrl)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.quickActionIcon}>🌐</Text>
+                <Text style={styles.quickActionText}>Open Website</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.quickActionCard}
+                onPress={() => setActiveTab("history")}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.quickActionIcon}>📋</Text>
+                <Text style={styles.quickActionText}>View Calls</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* RECENT ANALYSIS BREAKDOWN */}
             {latestCallAnalysis ? (
               <View style={styles.sectionWrap}>
                 <View style={styles.sectionHeaderRow}>
@@ -325,6 +472,17 @@ export default function App() {
                       <Text style={styles.draftBoxBody}>
                         "{latestCallAnalysis.detailedNotes.suggestedFollowUp.draftMessage}"
                       </Text>
+                      <TouchableOpacity
+                        style={styles.sendWhatsAppButton}
+                        onPress={() => {
+                          const msg = latestCallAnalysis.detailedNotes.suggestedFollowUp.draftMessage;
+                          Linking.openURL(`whatsapp://send?phone=${latestCallAnalysis.callerNumber}&text=${encodeURIComponent(msg)}`).catch(() => {
+                            Linking.openURL(`sms:${latestCallAnalysis.callerNumber}?body=${encodeURIComponent(msg)}`);
+                          });
+                        }}
+                      >
+                        <Text style={styles.sendWhatsAppText}>Send via WhatsApp / SMS →</Text>
+                      </TouchableOpacity>
                     </View>
                   )}
                 </View>
@@ -333,7 +491,7 @@ export default function App() {
               <View style={styles.emptyStateCard}>
                 <Text style={styles.emptyStateTitle}>No Calls Processed Yet</Text>
                 <Text style={styles.emptyStateDesc}>
-                  Tap 'Process Latest Call' above or receive a phone call to generate instant on-device summaries.
+                  Tap 'Process Latest Call' above or tap '+' below to test simulated audio ingestion.
                 </Text>
               </View>
             )}
@@ -369,14 +527,25 @@ export default function App() {
                   onPress={() => setSelectedLead(null)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.backButtonText}>← All Contacts</Text>
+                  <Text style={styles.backButtonText}>← Back to Contacts</Text>
                 </TouchableOpacity>
 
                 <View style={styles.contactHeroCard}>
-                  <Text style={styles.contactHeroName}>{selectedLead.name}</Text>
-                  <Text style={styles.contactHeroPhone}>{selectedLead.phone}</Text>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <View>
+                      <Text style={styles.contactHeroName}>{selectedLead.name}</Text>
+                      <Text style={styles.contactHeroPhone}>{selectedLead.phone}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteLead(selectedLead.id)}
+                      style={styles.deleteLeadIcon}
+                    >
+                      <Text style={{ color: "#ff3b30", fontSize: 13, fontWeight: "600" }}>Delete</Text>
+                    </TouchableOpacity>
+                  </View>
+
                   <Text style={styles.contactHeroMeta}>
-                    {selectedLead.calls?.length || 0} recorded conversations • Saved locally
+                    {selectedLead.company || "Individual"} • {selectedLead.calls?.length || 0} calls recorded
                   </Text>
 
                   {/* 1-Tap Carrier Communication Actions */}
@@ -386,7 +555,7 @@ export default function App() {
                       onPress={() => Linking.openURL(`tel:${selectedLead.phone}`)}
                       activeOpacity={0.85}
                     >
-                      <Text style={styles.actionBtnCallText}>Call</Text>
+                      <Text style={styles.actionBtnCallText}>📞 Call Now</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -399,26 +568,33 @@ export default function App() {
                       }}
                       activeOpacity={0.85}
                     >
-                      <Text style={styles.actionBtnMessageText}>WhatsApp</Text>
+                      <Text style={styles.actionBtnMessageText}>💬 WhatsApp / SMS</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
 
                 <Text style={styles.sectionTitle}>Recorded Interactions</Text>
-                {selectedLead.calls?.map((call, idx) => (
-                  <View key={call.id || idx} style={styles.specCard}>
-                    <Text style={styles.callTimestamp}>
-                      {new Date(call.date).toLocaleString()} • {call.durationSeconds}s
-                    </Text>
-                    <Text style={styles.specHeadline}>{call.exactSummary?.headline}</Text>
-                    {call.exactSummary?.bullets?.map((b, bIdx) => (
-                      <View key={bIdx} style={styles.bulletRow}>
-                        <View style={styles.bulletMarker} />
-                        <Text style={styles.bulletText}>{b}</Text>
-                      </View>
-                    ))}
+                {selectedLead.calls && selectedLead.calls.length > 0 ? (
+                  selectedLead.calls.map((call, idx) => (
+                    <View key={call.id || idx} style={styles.specCard}>
+                      <Text style={styles.callTimestamp}>
+                        {new Date(call.date).toLocaleString()} • {call.durationSeconds}s
+                      </Text>
+                      <Text style={styles.specHeadline}>{call.exactSummary?.headline}</Text>
+                      {call.exactSummary?.bullets?.map((b, bIdx) => (
+                        <View key={bIdx} style={styles.bulletRow}>
+                          <View style={styles.bulletMarker} />
+                          <Text style={styles.bulletText}>{b}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ))
+                ) : (
+                  <View style={styles.emptyStateCard}>
+                    <Text style={styles.emptyStateTitle}>No calls logged for this contact</Text>
+                    <Text style={styles.emptyStateDesc}>Incoming phone calls from this number will be auto-saved here.</Text>
                   </View>
-                ))}
+                )}
               </ScrollView>
             ) : (
               // Contacts Directory List
@@ -433,19 +609,40 @@ export default function App() {
                   />
                 </View>
 
+                {/* Status Filter Chips */}
+                <View style={styles.filterRow}>
+                  {["All", "Warm", "New", "Quoting"].map((status) => (
+                    <TouchableOpacity
+                      key={status}
+                      style={[styles.filterChip, statusFilter === status && styles.filterChipActive]}
+                      onPress={() => setStatusFilter(status)}
+                    >
+                      <Text style={[styles.filterChipText, statusFilter === status && styles.filterChipTextActive]}>
+                        {status}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
                 {filteredLeads.length === 0 ? (
                   <View style={styles.emptyStateCard}>
                     <Text style={styles.emptyStateTitle}>No Contacts Logged</Text>
                     <Text style={styles.emptyStateDesc}>
-                      Contacts are automatically added when incoming or outgoing calls are analyzed.
+                      Contacts are automatically added when calls are analyzed, or tap 'New Contact' to create one.
                     </Text>
+                    <TouchableOpacity
+                      style={[styles.outlineButton, { marginTop: 12, paddingHorizontal: 16 }]}
+                      onPress={() => setShowAddLeadModal(true)}
+                    >
+                      <Text style={styles.outlineButtonText}>＋ Add Contact</Text>
+                    </TouchableOpacity>
                   </View>
                 ) : (
                   <FlatList
                     data={filteredLeads}
                     keyExtractor={(item) => item.id}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 100 }}
+                    contentContainerStyle={{ paddingBottom: 110 }}
                     renderItem={({ item }) => (
                       <TouchableOpacity
                         style={styles.contactItem}
@@ -461,7 +658,7 @@ export default function App() {
                           <Text style={styles.contactItemName}>{item.name}</Text>
                           <Text style={styles.contactItemPhone}>{item.phone}</Text>
                           <Text style={styles.contactItemSnippet} numberOfLines={1}>
-                            {item.calls?.[0]?.exactSummary?.headline || "No calls recorded yet"}
+                            {item.calls?.[0]?.exactSummary?.headline || item.company || "No calls recorded yet"}
                           </Text>
                         </View>
                         <Text style={styles.contactChevron}>›</Text>
@@ -492,25 +689,77 @@ export default function App() {
                 <Text style={styles.insightValue}>{leads.reduce((acc, l) => acc + (l.calls?.length || 0), 0)}</Text>
               </View>
               <View style={styles.insightRow}>
-                <Text style={styles.insightLabel}>Average Call Duration</Text>
-                <Text style={styles.insightValue}>130s</Text>
+                <Text style={styles.insightLabel}>Contacts in Pipeline</Text>
+                <Text style={styles.insightValue}>{leads.length}</Text>
               </View>
               <View style={styles.insightRow}>
-                <Text style={styles.insightLabel}>Local Privacy Shield</Text>
-                <Text style={[styles.insightValue, { color: "#34c759" }]}>Active</Text>
+                <Text style={styles.insightLabel}>AI Ingestion Latency</Text>
+                <Text style={styles.insightValue}>1.4s (Groq)</Text>
               </View>
+              <View style={styles.insightRow}>
+                <Text style={styles.insightLabel}>Website Sync Status</Text>
+                <Text style={[styles.insightValue, { color: session ? "#34c759" : "#8e8e93" }]}>
+                  {session ? "Connected" : "Offline"}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.specCard}>
+              <Text style={styles.cardSubheading}>CRM Platform Quick Link</Text>
+              <Text style={styles.specBody}>
+                Open company web portal for multi-agent governance, user onboarding, and team analytics.
+              </Text>
+              <TouchableOpacity
+                style={styles.outlineButton}
+                onPress={() => Linking.openURL(settings.websiteUrl)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.outlineButtonText}>Launch Web CRM Portal ↗</Text>
+              </TouchableOpacity>
             </View>
           </ScrollView>
         )}
 
-        {/* TAB 4: PROFILE & DEVICE SETTINGS */}
+        {/* TAB 4: PROFILE & SETTINGS */}
         {activeTab === "profile" && (
           <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+            {/* Account Status / Company Login */}
+            <View style={styles.specCard}>
+              <Text style={styles.cardSubheading}>Company Authentication</Text>
+              {session ? (
+                <View>
+                  <Text style={styles.specHeadline}>{session.user?.companyName || "Call Flow CRM"}</Text>
+                  <Text style={styles.specBody}>Company ID: {session.user?.appUserId || "CALL-240001"}</Text>
+                  <Text style={styles.specBody}>Admin: {session.user?.name || "Administrator"}</Text>
+                  <TouchableOpacity
+                    style={styles.dangerOutlineButton}
+                    onPress={handleLogout}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.dangerOutlineButtonText}>Log Out</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View>
+                  <Text style={styles.specBody}>
+                    Connect this app to your company account on the CRM website to sync contacts and administration.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.outlineButton}
+                    onPress={() => setShowLoginModal(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.outlineButtonText}>Log In with Company ID</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
             {/* System Permissions */}
             <View style={styles.specCard}>
               <Text style={styles.cardSubheading}>Android Permissions</Text>
               <Text style={styles.specBody}>
-                Enables native detection of call start/hang-up and reads recorded audio files directly from phone storage.
+                Required for native detection of call start/hang-up and reading recorded audio files directly from phone storage.
               </Text>
               <TouchableOpacity
                 style={styles.outlineButton}
@@ -518,16 +767,16 @@ export default function App() {
                 activeOpacity={0.8}
               >
                 <Text style={styles.outlineButtonText}>
-                  {permissionsState.allGranted ? "✓ Permissions Active" : "Request Permissions"}
+                  {permissionsState.allGranted ? "✓ Permissions Active" : "Grant Android Permissions"}
                 </Text>
               </TouchableOpacity>
             </View>
 
             {/* Storage Privacy */}
             <View style={styles.specCard}>
-              <Text style={styles.cardSubheading}>On-Device Storage</Text>
+              <Text style={styles.cardSubheading}>On-Device Local Storage</Text>
               <Text style={styles.specBody}>
-                All notes and summaries remain stored on your device via AsyncStorage. Zero cloud database dependency.
+                All notes and summaries remain stored on your device via AsyncStorage. Zero cloud database exposure.
               </Text>
               <TouchableOpacity
                 style={styles.dangerOutlineButton}
@@ -538,10 +787,10 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            {/* Server Endpoint */}
+            {/* Settings & Endpoints */}
             <View style={styles.specCard}>
-              <Text style={styles.cardSubheading}>Backend AI Server</Text>
-              <Text style={styles.specBody}>Localhost or network endpoint for Whisper &amp; Groq:</Text>
+              <Text style={styles.cardSubheading}>App Configuration</Text>
+              <Text style={styles.inputLabel}>Backend AI Server URL:</Text>
               <TextInput
                 style={styles.configInput}
                 value={settings.backendUrl}
@@ -551,12 +800,126 @@ export default function App() {
                   saveLocalSettings(updated);
                 }}
               />
+
+              <Text style={[styles.inputLabel, { marginTop: 10 }]}>Connected Website URL:</Text>
+              <TextInput
+                style={styles.configInput}
+                value={settings.websiteUrl}
+                onChangeText={(text) => {
+                  const updated = { ...settings, websiteUrl: text };
+                  setSettings(updated);
+                  saveLocalSettings(updated);
+                }}
+              />
             </View>
           </ScrollView>
         )}
       </View>
 
-      {/* QUICK ACTION MODAL / BOTTOM SHEET */}
+      {/* MODAL 1: LOGIN TO WEBSITE / COMPANY */}
+      {showLoginModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Company Login</Text>
+            <Text style={styles.modalDesc}>Sign in with your Company ID created on the CRM website.</Text>
+
+            <Text style={styles.inputLabel}>Company ID / Login ID:</Text>
+            <TextInput
+              style={styles.configInput}
+              value={loginIdentifier}
+              onChangeText={setLoginIdentifier}
+              placeholder="e.g. CALL-240001 or admin"
+              placeholderTextColor="#8e8e93"
+              autoCapitalize="none"
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Password:</Text>
+            <TextInput
+              style={styles.configInput}
+              value={loginPassword}
+              onChangeText={setLoginPassword}
+              secureTextEntry
+              placeholder="Enter password"
+              placeholderTextColor="#8e8e93"
+            />
+
+            <TouchableOpacity
+              style={[styles.heroPrimaryButton, { marginTop: 16, backgroundColor: "#000000" }]}
+              onPress={handleLogin}
+              disabled={isLoggingIn}
+            >
+              {isLoggingIn ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={[styles.heroButtonText, { color: "#ffffff" }]}>Authenticate Company</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowLoginModal(false)}
+            >
+              <Text style={styles.modalCloseText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* MODAL 2: ADD MANUAL CONTACT */}
+      {showAddLeadModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Add Contact</Text>
+            <Text style={styles.modalDesc}>Manually save a customer contact into on-device storage.</Text>
+
+            <Text style={styles.inputLabel}>Contact Name:</Text>
+            <TextInput
+              style={styles.configInput}
+              value={newLeadForm.name}
+              onChangeText={(text) => setNewLeadForm({ ...newLeadForm, name: text })}
+              placeholder="e.g. Rahul Sharma"
+              placeholderTextColor="#8e8e93"
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Phone Number:</Text>
+            <TextInput
+              style={styles.configInput}
+              value={newLeadForm.phone}
+              onChangeText={(text) => setNewLeadForm({ ...newLeadForm, phone: text })}
+              placeholder="e.g. +91 98765 43210"
+              placeholderTextColor="#8e8e93"
+              keyboardType="phone-pad"
+            />
+
+            <Text style={[styles.inputLabel, { marginTop: 10 }]}>Company / Organization (Optional):</Text>
+            <TextInput
+              style={styles.configInput}
+              value={newLeadForm.company}
+              onChangeText={(text) => setNewLeadForm({ ...newLeadForm, company: text })}
+              placeholder="e.g. Apex Industries"
+              placeholderTextColor="#8e8e93"
+            />
+
+            <TouchableOpacity
+              style={[styles.heroPrimaryButton, { marginTop: 16, backgroundColor: "#000000" }]}
+              onPress={handleSaveManualLead}
+            >
+              <Text style={[styles.heroButtonText, { color: "#ffffff" }]}>Save Contact</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowAddLeadModal(false)}
+            >
+              <Text style={styles.modalCloseText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* MODAL 3: QUICK ACTION BOTTOM SHEET */}
       {showQuickActionModal && (
         <View style={styles.modalOverlay}>
           <View style={styles.modalSheet}>
@@ -579,6 +942,16 @@ export default function App() {
             </TouchableOpacity>
 
             <TouchableOpacity
+              style={styles.modalActionButton}
+              onPress={() => {
+                setShowQuickActionModal(false);
+                setShowAddLeadModal(true);
+              }}
+            >
+              <Text style={styles.modalActionText}>＋ Add Contact Manually</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
               style={styles.modalCloseButton}
               onPress={() => setShowQuickActionModal(false)}
             >
@@ -588,7 +961,7 @@ export default function App() {
         </View>
       )}
 
-      {/* MINIMAL PREMIUM FLOATING NAVBAR (Matching Design Spec Exactly) */}
+      {/* MINIMAL PREMIUM FLOATING NAVBAR */}
       <View style={styles.navbarWrapper}>
         <View style={styles.floatingCapsule}>
           {/* Tab 1: Home */}
@@ -672,40 +1045,51 @@ const styles = StyleSheet.create({
     color: "#8e8e93",
     marginTop: 1
   },
-  liveIndicator: {
+  userBadge: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f2f2f7",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14
+  },
+  userBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#000000"
+  },
+  loginPill: {
+    backgroundColor: "#000000",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14
+  },
+  loginPillText: {
+    color: "#ffffff",
+    fontSize: 11,
+    fontWeight: "700"
   },
   liveDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
     backgroundColor: "#34c759",
-    marginRight: 5
-  },
-  liveText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#1c1c1e"
+    marginRight: 6
   },
   mainViewport: {
     flex: 1
   },
   scrollContainer: {
     padding: 16,
-    paddingBottom: 100
+    paddingBottom: 110
   },
 
-  // HERO CARD: Strict hierarchy, high CTA prominence
+  // HERO CARD
   heroCard: {
     backgroundColor: "#000000",
     borderRadius: 18,
     padding: 20,
-    marginBottom: 16,
+    marginBottom: 14,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -752,9 +1136,36 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
 
+  // QUICK ACTIONS ROW
+  quickActionsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 14
+  },
+  quickActionCard: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#e5e5ea"
+  },
+  quickActionIcon: {
+    fontSize: 16,
+    marginBottom: 4,
+    color: "#000000"
+  },
+  quickActionText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#000000"
+  },
+
   // SECTION STYLING
   sectionWrap: {
-    marginBottom: 16
+    marginBottom: 14
   },
   sectionHeaderRow: {
     flexDirection: "row",
@@ -857,7 +1268,19 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#1c1c1e",
     fontStyle: "italic",
-    lineHeight: 18
+    lineHeight: 18,
+    marginBottom: 8
+  },
+  sendWhatsAppButton: {
+    backgroundColor: "#000000",
+    borderRadius: 8,
+    paddingVertical: 7,
+    alignItems: "center"
+  },
+  sendWhatsAppText: {
+    color: "#ffffff",
+    fontSize: 11,
+    fontWeight: "700"
   },
 
   // EMPTY STATE
@@ -867,7 +1290,7 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: "#e5e5ea"
   },
@@ -921,7 +1344,7 @@ const styles = StyleSheet.create({
     paddingTop: 14
   },
   searchBarWrap: {
-    marginBottom: 12
+    marginBottom: 10
   },
   searchBarInput: {
     backgroundColor: "#ffffff",
@@ -932,6 +1355,31 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 13,
     color: "#000000"
+  },
+  filterRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#e5e5ea"
+  },
+  filterChipActive: {
+    backgroundColor: "#000000",
+    borderColor: "#000000"
+  },
+  filterChipText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#8e8e93"
+  },
+  filterChipTextActive: {
+    color: "#ffffff"
   },
   contactItem: {
     flexDirection: "row",
@@ -1009,6 +1457,9 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#3a3a3c",
     marginTop: 4
+  },
+  deleteLeadIcon: {
+    padding: 4
   },
   actionRow: {
     flexDirection: "row",
@@ -1095,7 +1546,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#8e8e93",
     lineHeight: 17,
-    marginBottom: 12
+    marginBottom: 10
   },
   outlineButton: {
     borderWidth: 1,
@@ -1120,6 +1571,12 @@ const styles = StyleSheet.create({
     color: "#ff3b30",
     fontSize: 12,
     fontWeight: "700"
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#8e8e93",
+    marginBottom: 4
   },
   configInput: {
     backgroundColor: "#f2f2f7",
@@ -1190,7 +1647,7 @@ const styles = StyleSheet.create({
     color: "#8e8e93"
   },
 
-  // MINIMAL FLOATING NAVBAR SPEC (From User Image)
+  // MINIMAL FLOATING NAVBAR
   navbarWrapper: {
     position: "absolute",
     bottom: 20,
