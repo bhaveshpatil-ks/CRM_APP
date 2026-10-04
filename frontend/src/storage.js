@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LEADS_KEY = "@crm_leads";
 const SETTINGS_KEY = "@crm_settings";
+const USER_SESSION_KEY = "@crm_user_session";
 
 // Clean phone digits helper (last 10 digits for matching)
 export function normalizePhone(phone = "") {
@@ -9,7 +10,33 @@ export function normalizePhone(phone = "") {
   return digits.length >= 10 ? digits.slice(-10) : digits;
 }
 
-// 1. Fetch all locally stored leads (No fake data, starts empty [])
+// 1. User Session Management (Website Connected Login)
+export async function getStoredSession() {
+  try {
+    const raw = await AsyncStorage.getItem(USER_SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveUserSession(session) {
+  try {
+    await AsyncStorage.setItem(USER_SESSION_KEY, JSON.stringify(session));
+  } catch (error) {
+    console.error("Failed to save session:", error);
+  }
+}
+
+export async function clearUserSession() {
+  try {
+    await AsyncStorage.removeItem(USER_SESSION_KEY);
+  } catch (error) {
+    console.error("Failed to clear session:", error);
+  }
+}
+
+// 2. Fetch all locally stored leads (No fake data, starts empty [])
 export async function getLocalLeads() {
   try {
     const raw = await AsyncStorage.getItem(LEADS_KEY);
@@ -20,7 +47,7 @@ export async function getLocalLeads() {
   }
 }
 
-// 2. Save all leads to on-device AsyncStorage
+// 3. Save all leads to on-device AsyncStorage
 export async function saveLocalLeads(leads) {
   try {
     await AsyncStorage.setItem(LEADS_KEY, JSON.stringify(leads));
@@ -29,7 +56,7 @@ export async function saveLocalLeads(leads) {
   }
 }
 
-// 3. Attach call analysis directly to contact's local history (e.g. Any customer)
+// 4. Attach call analysis directly to contact's local history
 export async function addOrUpdateLeadFromCall(callData) {
   try {
     const leads = await getLocalLeads();
@@ -50,7 +77,6 @@ export async function addOrUpdateLeadFromCall(callData) {
     };
 
     if (lead) {
-      // Existing contact -> append call to their timeline
       if (!lead.calls) lead.calls = [];
       lead.calls.unshift(callRecord);
       lead.lastContactedAt = new Date().toISOString();
@@ -60,7 +86,6 @@ export async function addOrUpdateLeadFromCall(callData) {
         lead.nextFollowUpAt = callData.detailedNotes.suggestedFollowUp.dueDate;
       }
     } else {
-      // New contact -> create fresh local dossier
       lead = {
         id: `lead_${Date.now()}`,
         name: callData.callerName || `Contact ${cleanNumber}`,
@@ -85,7 +110,20 @@ export async function addOrUpdateLeadFromCall(callData) {
   }
 }
 
-// 4. Wipe all on-device data
+// 5. Delete specific lead
+export async function deleteLeadById(id) {
+  try {
+    const leads = await getLocalLeads();
+    const updated = leads.filter((l) => l.id !== id);
+    await saveLocalLeads(updated);
+    return updated;
+  } catch (error) {
+    console.error("Failed to delete lead:", error);
+    throw error;
+  }
+}
+
+// 6. Wipe all on-device data
 export async function clearLocalData() {
   try {
     await AsyncStorage.removeItem(LEADS_KEY);
@@ -94,7 +132,7 @@ export async function clearLocalData() {
   }
 }
 
-// 5. Settings Persistence
+// 7. Settings Persistence
 export async function getLocalSettings() {
   try {
     const raw = await AsyncStorage.getItem(SETTINGS_KEY);
@@ -102,16 +140,20 @@ export async function getLocalSettings() {
       ? JSON.parse(raw)
       : {
           backendUrl: "http://10.0.2.2:4000",
+          websiteUrl: "http://localhost:5173",
           recordingStoragePath: "/storage/emulated/0/Recordings/Call",
           autoSyncCalls: true,
-          skipShortCalls: true
+          skipShortCalls: true,
+          autoDraftWhatsApp: true
         };
   } catch {
     return {
       backendUrl: "http://10.0.2.2:4000",
+      websiteUrl: "http://localhost:5173",
       recordingStoragePath: "/storage/emulated/0/Recordings/Call",
       autoSyncCalls: true,
-      skipShortCalls: true
+      skipShortCalls: true,
+      autoDraftWhatsApp: true
     };
   }
 }
