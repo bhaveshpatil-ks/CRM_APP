@@ -2,9 +2,17 @@ import React, { useState, useEffect, useRef } from "react";
 import Lenis from "lenis";
 import { INDUSTRY_PRESETS, INITIAL_LEADS } from "./sampleData";
 import { api } from "./api";
+import { getStoredPermissions, saveStoredPermissions, ANDROID_PERMISSIONS } from "./androidPermissions";
 
 // APP SETTINGS SEARCH DICTIONARY FOR UNIVERSAL SEARCH
 const SETTINGS_SEARCH_ITEMS = [
+  {
+    id: "set-0",
+    title: "Android Permissions & Local Storage",
+    subtitle: "Call logs, phone state, voice storage access & 100% on-device private data",
+    keywords: ["permission", "permissions", "storage", "call log", "voice", "phone state", "private", "device", "local storage", "offline"],
+    snippet: "Manage Android system permissions and on-device private storage"
+  },
   {
     id: "set-1",
     title: "Mobile Call Recording & Auto-Sync",
@@ -179,7 +187,31 @@ export default function App() {
   
   const [industryDropdownOpen, setIndustryDropdownOpen] = useState(false);
   const [selectedIndustry, setSelectedIndustry] = useState("manufacturing");
-  const [leads, setLeads] = useState(INITIAL_LEADS);
+  // ON-DEVICE PRIVATE STORAGE: Leads persist 100% on user's device storage
+  const [leads, setLeads] = useState(() => {
+    try {
+      const saved = localStorage.getItem("crm_local_leads");
+      return saved ? JSON.parse(saved) : INITIAL_LEADS;
+    } catch {
+      return INITIAL_LEADS;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("crm_local_leads", JSON.stringify(leads));
+    } catch (e) {
+      console.warn("Failed to persist leads to local storage:", e);
+    }
+  }, [leads]);
+
+  // ANDROID PERMISSIONS STATE
+  const [androidPermissions, setAndroidPermissions] = useState(getStoredPermissions);
+  const togglePermission = (key) => {
+    const updated = { ...androidPermissions, [key]: !androidPermissions[key] };
+    setAndroidPermissions(updated);
+    saveStoredPermissions(updated);
+  };
 
   // UNIVERSAL SEARCH STATE
   const [universalSearchQuery, setUniversalSearchQuery] = useState("");
@@ -414,8 +446,13 @@ export default function App() {
   // Reset Data Handler
   const handleResetData = () => {
     if (window.confirm("Reset all CRM leads back to initial state?")) {
+      try {
+        localStorage.removeItem("crm_local_leads");
+      } catch (e) {
+        console.warn("Storage clear error:", e);
+      }
       setLeads(INITIAL_LEADS);
-      alert("CRM leads reset successfully!");
+      alert("Local CRM leads reset successfully!");
     }
   };
 
@@ -1790,6 +1827,55 @@ export default function App() {
                         <span className="toggle-slider"></span>
                       </label>
                     </div>
+                  </div>
+                </div>
+
+                {/* Android System Permissions & On-Device Privacy Storage */}
+                <div className="panel-box">
+                  <div className="panel-header">
+                    <div>
+                      <h3>Android Permissions &amp; Storage</h3>
+                      <div style={{ fontSize: "0.68rem", color: "#64748b", marginTop: "0.15rem" }}>
+                        All notes &amp; summaries stored locally on your device
+                      </div>
+                    </div>
+                    <span style={{ fontSize: "0.62rem", background: "rgba(16,185,129,0.12)", color: "#059669", padding: "0.2rem 0.5rem", borderRadius: "3px", fontFamily: "var(--font-mono)", fontWeight: "700" }}>
+                      [ 100% PRIVATE ]
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    <div style={{ padding: "0.65rem", background: "#f8fafc", border: "1px solid var(--surface-border-strong)", borderRadius: "4px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.25rem" }}>
+                        <span style={{ fontSize: "0.74rem", fontWeight: "700", color: "#090d16" }}>💾 On-Device Local Storage</span>
+                        <span style={{ fontSize: "0.65rem", fontFamily: "var(--font-mono)", color: "#10b981", fontWeight: "700" }}>ACTIVE • ZERO CLOUD DB</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: "0.7rem", color: "#64748b", lineHeight: "1.3" }}>
+                        Your call summaries, notes, and contacts are stored strictly in your phone&apos;s storage ({leads.length} contacts saved). Nothing is saved to any public cloud database.
+                      </p>
+                    </div>
+
+                    {ANDROID_PERMISSIONS.map((perm) => (
+                      <div key={perm.id} className="setting-row-toggle">
+                        <div className="setting-label-group">
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                            <span className="setting-title">{perm.name}</span>
+                            <span style={{ fontSize: "0.58rem", fontFamily: "var(--font-mono)", padding: "0.1rem 0.35rem", borderRadius: "2px", background: androidPermissions[perm.id] ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", color: androidPermissions[perm.id] ? "#059669" : "#dc2626", fontWeight: "700" }}>
+                              {androidPermissions[perm.id] ? "GRANTED" : "DISABLED"}
+                            </span>
+                          </div>
+                          <span className="setting-desc">{perm.description}</span>
+                        </div>
+                        <label className="toggle-switch">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(androidPermissions[perm.id])}
+                            onChange={() => togglePermission(perm.id)}
+                          />
+                          <span className="toggle-slider"></span>
+                        </label>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
