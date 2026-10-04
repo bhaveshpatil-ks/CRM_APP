@@ -1,16 +1,13 @@
-import React, { useEffect } from "react";
+import React from "react";
 import ReactDOM from "react-dom/client";
 import Lenis from "lenis";
 import App from "./App";
 
 function PreviewRoot() {
-  useEffect(() => {
+  React.useEffect(() => {
     try {
       const lenis = new Lenis({
         duration: 1.2,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        orientation: "vertical",
-        gestureOrientation: "vertical",
         smoothWheel: true,
         wheelMultiplier: 1.1
       });
@@ -21,74 +18,70 @@ function PreviewRoot() {
       }
 
       const rafId = requestAnimationFrame(raf);
-
       return () => {
         cancelAnimationFrame(rafId);
         lenis.destroy();
       };
     } catch (e) {
-      console.warn("Lenis init fallback:", e);
+      console.warn("Lenis init skipped:", e);
     }
   }, []);
 
   return (
     <div style={{
       minHeight: "100vh",
-      backgroundColor: "#0a0d14",
+      backgroundColor: "#0d1117",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "flex-start",
-      padding: "30px 10px 40px",
+      padding: "20px 10px 40px",
       boxSizing: "border-box",
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif"
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
     }}>
+      {/* Top Banner */}
       <div style={{
-        marginBottom: "20px",
+        marginBottom: "16px",
         textAlign: "center"
       }}>
         <div style={{
           display: "inline-flex",
           alignItems: "center",
           gap: "8px",
-          background: "#161b26",
-          border: "1px solid #283042",
+          background: "#161b22",
+          border: "1px solid #30363d",
           color: "#ffffff",
           padding: "5px 14px",
           borderRadius: "20px",
           fontSize: "11px",
           fontWeight: "700",
           letterSpacing: "0.5px",
-          marginBottom: "10px"
+          marginBottom: "8px"
         }}>
-          <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#34c759", display: "inline-block" }}></span>
-          <span>ONLINE • GROQ 1.4s AI • LENIS SMOOTH</span>
+          <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#238636", display: "inline-block" }}></span>
+          <span>GROQ 1.4s AI • ON-DEVICE STORAGE • LENIS SMOOTH</span>
         </div>
-        <h2 style={{ color: "#ffffff", margin: "0 0 6px 0", fontSize: "20px", fontWeight: "800", letterSpacing: "-0.4px" }}>
-          Android Call Intelligence App
-        </h2>
-        <p style={{ color: "#94a3b8", margin: 0, fontSize: "13px" }}>
-          Connected Mobile App • Company Login • 100% On-Device Private Storage
+        <h1 style={{ color: "#ffffff", margin: "0 0 4px 0", fontSize: "20px", fontWeight: "800", letterSpacing: "-0.4px" }}>
+          Android Call CRM Intelligence
+        </h1>
+        <p style={{ color: "#8b949e", margin: 0, fontSize: "12px" }}>
+          Connected Mobile App • Company Login • 100% On-Device Private
         </p>
       </div>
 
-      {/* Phone Mockup Frame */}
-      <div
-        data-lenis-prevent="true"
-        style={{
-          width: "375px",
-          height: "760px",
-          maxHeight: "90vh",
-          borderRadius: "44px",
-          backgroundColor: "#f7f7f8",
-          boxShadow: "0 30px 70px -15px rgba(0, 0, 0, 0.7), 0 0 0 10px #1e2638, 0 0 0 12px #2e3b56",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          position: "relative"
-        }}
-      >
-        {/* Top Camera Punch Hole */}
+      {/* Standalone Interactive Phone Frame */}
+      <div style={{
+        width: "375px",
+        height: "760px",
+        borderRadius: "44px",
+        backgroundColor: "#ffffff",
+        boxShadow: "0 25px 70px -15px rgba(0, 0, 0, 0.9), 0 0 0 10px #21262d, 0 0 0 12px #30363d",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+        position: "relative"
+      }}>
+        {/* Top Punch Hole Camera */}
         <div style={{
           position: "absolute",
           top: "10px",
@@ -101,7 +94,8 @@ function PreviewRoot() {
           zIndex: 9999
         }} />
 
-        <div style={{ flex: 1, marginTop: "14px", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {/* App Container */}
+        <div style={{ flex: 1, marginTop: "14px", display: "flex", flexDirection: "column", height: "calc(100% - 14px)" }}>
           <App />
         </div>
       </div>
