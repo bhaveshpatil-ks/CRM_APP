@@ -1,0 +1,5 @@
+{
+  "appId": "com.aicallcrm.app",
+  "appName": "AI Call CRM",
+  "webDir": "frontend/dist"
+}
