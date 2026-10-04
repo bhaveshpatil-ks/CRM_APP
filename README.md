@@ -16,7 +16,7 @@
 
   **A modern, high-performance Android mobile AI CRM platform that auto-syncs phone call recordings, generates instant AI summaries (GPT-4o / Ollama), and manages lead pipelines with 1-tap SMS. Built exclusively for Android.**
 
-  [Repository](https://github.com/bhaveshpatil-ks/CRM_APP) • [Features](#key-features) • [Android Architecture](#mobile--android-native-architecture) • [AI Pipeline](#multi-engine-ai-summarizer-pipeline) • [Website Portal](https://github.com/bhaveshpatil-ks/CRM-Website)
+  [Repository](https://github.com/bhaveshpatil-ks/CRM_APP) • [Features](#key-features) • [Android Architecture](#mobile--android-native-architecture) • [AI Pipeline](#multi-engine-ai-summarizer-pipeline) • [Site Map](SITEMAP.md) • [Website Portal](https://github.com/bhaveshpatil-ks/CRM-Website)
 
   <br />
 
@@ -196,28 +196,38 @@ Multi-target indexing allowing reps to search across:
 
 ## 📂 Project Directory Structure
 
+Complete architecture and file-by-file breakdown is documented in [SITEMAP.md](SITEMAP.md).
+
 ```text
 CRM_APP/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml               # GitHub Actions CI build verification workflow
-├── frontend/                    # React 18 Mobile Application
-│   ├── public/                  # Static assets & brand mark
+├── android/                     # Android Native Studio Project
+│   ├── app/
+│   │   ├── src/main/AndroidManifest.xml # Permissions & Broadcast Receiver
+│   │   └── src/main/java/com/aicallcrm/app/CallStateReceiver.java
+│   └── build.gradle
+├── frontend/                    # React Native Android Application
 │   ├── src/
-│   │   ├── api.js               # Multi-engine AI client (Built-in, OpenAI, Ollama)
-│   │   ├── App.jsx              # Mobile application container & router
-│   │   ├── main.jsx             # React DOM entrypoint
-│   │   ├── sampleData.js        # Lead records, audio transcripts & industry presets
-│   │   └── styles.css           # Minimal mobile design system & waveform styles
-│   ├── index.html               # Mobile viewport & Google Fonts (Inter + JetBrains Mono)
-│   ├── package.json             # Frontend dependencies & Vite scripts
-│   └── vite.config.js           # Vite bundler configuration
-├── backend/                     # Node.js Express 4 API Server
-│   ├── package.json             # Express dependencies (express, cors)
-│   └── server.js                # Express API server & CORS configuration
-├── .gitignore                   # Ignores node_modules, build output, and separate web repo
+│   │   ├── App.jsx              # React Native Application UI & Tabs
+│   │   ├── api.js               # Audio multipart uploader to backend
+│   │   ├── permissions.js       # Android native runtime permissions
+│   │   ├── storage.js           # 100% On-Device AsyncStorage (Zero Cloud DB)
+│   │   ├── asyncStorageMock.js  # Preview shim for browser testing
+│   │   └── previewEntry.jsx     # Mobile container frame for browser preview
+│   ├── index.html               # Mobile phone preview template
+│   ├── package.json             # React Native dependencies
+│   └── vite.config.js           # Vite preview configuration
+├── backend/                     # Node.js Express Stateless AI Server
+│   ├── routes/callRoutes.js     # Audio upload & analysis route
+│   ├── services/aiService.js    # Groq Whisper & JSON structuring engine
+│   ├── package.json             # Express, groq-sdk, multer dependencies
+│   └── server.js                # Express REST server
+├── .gitignore                   # Ignores node_modules, build output, secrets
 ├── package.json                 # Root script container
-└── README.md                    # Mobile app architecture & documentation
+├── SITEMAP.md                   # Full repository file catalog & architecture map
+└── README.md                    # Primary Android app architecture & guide
 ```
 
 ---
