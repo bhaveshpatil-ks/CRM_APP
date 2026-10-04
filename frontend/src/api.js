@@ -1,5 +1,36 @@
 // Network API Client for Stateless AI Audio Analysis
 
+function createTestAudioBlob() {
+  const sampleRate = 16000;
+  const numChannels = 1;
+  const bitsPerSample = 16;
+  const dataSize = sampleRate * 2;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  function writeString(offset, string) {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  }
+
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, (sampleRate * numChannels * bitsPerSample) / 8, true);
+  view.setUint16(32, (numChannels * bitsPerSample) / 8, true);
+  view.setUint16(34, bitsPerSample, true);
+  writeString(36, "data");
+  view.setUint32(40, dataSize, true);
+
+  return new Blob([buffer], { type: "audio/wav" });
+}
+
 export async function sendRecordingForAnalysis({
   backendUrl = "http://10.0.2.2:4000",
   audioUri,
@@ -11,17 +42,30 @@ export async function sendRecordingForAnalysis({
 }) {
   const formData = new FormData();
 
-  formData.append("recording", {
-    uri: audioUri,
-    name: fileName,
-    type: mimeType
-  });
+  const isWeb = typeof window !== "undefined";
+  let targetUrl = backendUrl;
+  if (isWeb && (targetUrl.includes("10.0.2.2") || targetUrl.includes("localhost"))) {
+    targetUrl = "http://localhost:4000";
+  }
+
+  if (isWeb) {
+    // Web Preview: send a valid audio blob
+    const audioBlob = createTestAudioBlob();
+    formData.append("recording", audioBlob, "recording.wav");
+  } else {
+    // Native Android: send React Native file URI object
+    formData.append("recording", {
+      uri: audioUri,
+      name: fileName,
+      type: mimeType
+    });
+  }
 
   formData.append("callerNumber", callerNumber || "Unknown");
   formData.append("callerName", callerName || "Unknown");
   formData.append("callDuration", String(callDuration));
 
-  const url = `${backendUrl.replace(/\/$/, "")}/api/calls/analyze-recording`;
+  const url = `${targetUrl.replace(/\/$/, "")}/api/calls/analyze-recording`;
 
   const response = await fetch(url, {
     method: "POST",
