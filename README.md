@@ -101,7 +101,16 @@ CRM_APP is architected with a mobile-first design system (`375px × 720px` respo
 - **Short Call Filter**: Calls under 10 seconds in duration are classified as missed calls or wrong numbers and automatically filtered out to keep the CRM clean.
 - **Audio Extraction**: The raw audio file is indexed with metadata (timestamp, phone number, duration) and bridged to the CRM ingestion pipeline.
 
-### 2. Android Native Integration Bridge
+### 2. Android Permissions & 100% On-Device Private Storage
+- **Zero Cloud Database Cost & Maximum Privacy**: All call notes, executive summaries, caller history, and lead contact lists (e.g., Rajesh) are stored **100% on the user's phone storage** (`localStorage` / SQLite). No personal customer calls or contact records are saved in any central cloud database.
+- **Declared Android Permissions (`AndroidManifest.xml`)**:
+  - `READ_PHONE_STATE`: Detects incoming/outgoing call status and hang-up triggers.
+  - `READ_CALL_LOG`: Accesses caller phone number, contact name, and call duration.
+  - `READ_MEDIA_AUDIO` / `READ_EXTERNAL_STORAGE`: Reads recorded audio files (`.m4a`, `.mp3`, `.amr`) from device storage.
+  - `RECORD_AUDIO`: Microphone audio capture & waveform visualization.
+  - `FOREGROUND_SERVICE` & `RECEIVE_BOOT_COMPLETED`: Keeps background call monitor active across device reboots.
+
+### 3. Android Native Integration Bridge
 To bundle CRM_APP into an Android `.apk`:
 ```javascript
 // Native Android HeadlessJsTaskService / WebView Bridge Example
