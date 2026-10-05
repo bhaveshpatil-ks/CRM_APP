@@ -30,6 +30,21 @@ import {
 import { requestAllPermissions, checkPermissionsStatus } from "./permissions";
 import { sendRecordingForAnalysis, authenticateCompany } from "./api";
 
+// Official WhatsApp Vector Icon Component
+function WhatsAppIcon({ size = 16, color = "#ffffff" }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill={color}
+      style={{ display: "inline-block", verticalAlign: "middle" }}
+    >
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c-.001 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+    </svg>
+  );
+}
+
 // Monochrome SVG-style geometric icons matching design specification
 function HomeIcon({ active }) {
   const color = active ? "#000000" : "#8e8e93";
@@ -137,7 +152,6 @@ export default function App() {
   const [leads, setLeads] = useState([]);
   const [selectedLead, setSelectedLead] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [settings, setSettings] = useState({
     backendUrl: "http://10.0.2.2:4000",
@@ -398,8 +412,7 @@ export default function App() {
       l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       l.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (l.company && l.company.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesStatus = statusFilter === "All" || l.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
   return (
@@ -517,36 +530,6 @@ export default function App() {
               </View>
             </View>
 
-            {/* PIPELINE STAGES BAR */}
-            <View style={styles.pipelineBar}>
-              <TouchableOpacity
-                style={[styles.pipelinePill, statusFilter === "All" && styles.pipelinePillActive]}
-                onPress={() => { setStatusFilter("All"); setActiveTab("history"); }}
-              >
-                <Text style={[styles.pipelinePillText, statusFilter === "All" && styles.pipelinePillTextActive]}>
-                  All Deals ({leads.length})
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.pipelinePill, statusFilter === "Quoting" && styles.pipelinePillActive]}
-                onPress={() => { setStatusFilter("Quoting"); setActiveTab("history"); }}
-              >
-                <Text style={[styles.pipelinePillText, statusFilter === "Quoting" && styles.pipelinePillTextActive]}>
-                  Quoting ({leads.filter((l) => l.status === "Quoting").length})
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.pipelinePill, statusFilter === "Warm" && styles.pipelinePillActive]}
-                onPress={() => { setStatusFilter("Warm"); setActiveTab("history"); }}
-              >
-                <Text style={[styles.pipelinePillText, statusFilter === "Warm" && styles.pipelinePillTextActive]}>
-                  Warm ({leads.filter((l) => l.status === "Warm").length})
-                </Text>
-              </TouchableOpacity>
-            </View>
-
             {/* ACTION ITEMS / CHECKLIST QUEUE */}
             {allActionItems.length > 0 && (
               <View style={styles.sectionWrap}>
@@ -575,16 +558,17 @@ export default function App() {
                           {item.taskText}
                         </Text>
                         <View style={styles.taskSubRow}>
-                          <Text style={styles.taskLeadName}>👤 {item.leadName}</Text>
-                          <Text style={styles.taskDueDate}> • ⏰ {item.dueDate}</Text>
+                          <Text style={styles.taskLeadName}>{item.leadName}</Text>
+                          <Text style={styles.taskDueDate}> • {item.dueDate}</Text>
                         </View>
                       </View>
                       {item.draftMessage ? (
                         <TouchableOpacity
                           style={styles.taskSendBtn}
                           onPress={() => handleSendWhatsApp(item.leadPhone, item.draftMessage)}
+                          activeOpacity={0.8}
                         >
-                          <Text style={styles.taskSendBtnText}>💬</Text>
+                          <WhatsAppIcon size={14} color="#25D366" />
                         </TouchableOpacity>
                       ) : null}
                     </TouchableOpacity>
@@ -598,9 +582,6 @@ export default function App() {
               <View style={styles.sectionWrap}>
                 <View style={styles.sectionHeaderRow}>
                   <Text style={styles.sectionTitle}>Latest Analysis: {displayAnalysis.callerName}</Text>
-                  <View style={styles.tagPill}>
-                    <Text style={styles.tagPillText}>{displayAnalysis.exactSummary?.keyOutcome || "Outcome"}</Text>
-                  </View>
                 </View>
 
                 {/* Exact Summary Box */}
@@ -631,7 +612,10 @@ export default function App() {
                       )}
                       activeOpacity={0.85}
                     >
-                      <Text style={styles.sendWhatsAppText}>Dispatch via WhatsApp / SMS →</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                        <WhatsAppIcon size={15} color="#ffffff" />
+                        <Text style={styles.sendWhatsAppText}>Dispatch via WhatsApp</Text>
+                      </View>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -650,23 +634,14 @@ export default function App() {
 
                 {leads.slice(0, 3).map((lead) => {
                   const latestCall = lead.calls?.[0];
-                  const initials = lead.name
-                    ? lead.name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
-                    : "C";
                   return (
                     <View key={lead.id} style={styles.callFeedCard}>
                       <View style={styles.callFeedTop}>
-                        <View style={styles.feedAvatar}>
-                          <Text style={styles.feedAvatarText}>{initials}</Text>
-                        </View>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.feedName}>{lead.name}</Text>
                           <Text style={styles.feedMeta}>
                             {lead.company} • {latestCall ? `${latestCall.durationSeconds}s call` : "New Contact"}
                           </Text>
-                        </View>
-                        <View style={styles.outcomePill}>
-                          <Text style={styles.outcomePillText}>{lead.status}</Text>
                         </View>
                       </View>
 
@@ -678,20 +653,15 @@ export default function App() {
 
                       <View style={styles.feedActionButtons}>
                         <TouchableOpacity
-                          style={styles.feedBtnCall}
-                          onPress={() => Linking.openURL(`tel:${lead.phone}`)}
-                        >
-                          <Text style={styles.feedBtnCallText}>📞 Call</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
                           style={styles.feedBtnMessage}
                           onPress={() => {
                             const draft = latestCall?.detailedNotes?.suggestedFollowUp?.draftMessage || "Hello";
                             handleSendWhatsApp(lead.phone, draft);
                           }}
+                          activeOpacity={0.85}
                         >
-                          <Text style={styles.feedBtnMessageText}>💬 WhatsApp</Text>
+                          <WhatsAppIcon size={15} color="#ffffff" />
+                          <Text style={styles.feedBtnMessageText}>WhatsApp</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -700,6 +670,7 @@ export default function App() {
                             setSelectedLead(lead);
                             setActiveTab("history");
                           }}
+                          activeOpacity={0.7}
                         >
                           <Text style={styles.feedBtnDetailsText}>Notes ›</Text>
                         </TouchableOpacity>
@@ -765,14 +736,6 @@ export default function App() {
                   {/* 1-Tap Carrier Communication Actions */}
                   <View style={styles.actionRow}>
                     <TouchableOpacity
-                      style={styles.actionBtnCall}
-                      onPress={() => Linking.openURL(`tel:${selectedLead.phone}`)}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={styles.actionBtnCallText}>📞 Call Now</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
                       style={styles.actionBtnMessage}
                       onPress={() => {
                         const msg = selectedLead.calls?.[0]?.detailedNotes?.suggestedFollowUp?.draftMessage || "Hello";
@@ -780,7 +743,8 @@ export default function App() {
                       }}
                       activeOpacity={0.85}
                     >
-                      <Text style={styles.actionBtnMessageText}>💬 WhatsApp / SMS</Text>
+                      <WhatsAppIcon size={16} color="#ffffff" />
+                      <Text style={styles.actionBtnMessageText}>Send WhatsApp Message</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -847,21 +811,6 @@ export default function App() {
                   />
                 </View>
 
-                {/* Status Filter Chips */}
-                <View style={styles.filterRow}>
-                  {["All", "Warm", "Quoting", "New"].map((status) => (
-                    <TouchableOpacity
-                      key={status}
-                      style={[styles.filterChip, statusFilter === status && styles.filterChipActive]}
-                      onPress={() => setStatusFilter(status)}
-                    >
-                      <Text style={[styles.filterChipText, statusFilter === status && styles.filterChipTextActive]}>
-                        {status}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
                 {filteredLeads.length === 0 ? (
                   <View style={styles.emptyStateCard}>
                     <Text style={styles.emptyStateTitle}>No Contacts Found</Text>
@@ -887,20 +836,12 @@ export default function App() {
                         onPress={() => setSelectedLead(item)}
                         activeOpacity={0.7}
                       >
-                        <View style={styles.contactAvatar}>
-                          <Text style={styles.contactAvatarText}>
-                            {item.name ? item.name.charAt(0).toUpperCase() : "#"}
-                          </Text>
-                        </View>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.contactItemName}>{item.name}</Text>
                           <Text style={styles.contactItemPhone}>{item.phone} • {item.company || "Individual"}</Text>
                           <Text style={styles.contactItemSnippet} numberOfLines={1}>
                             {item.calls?.[0]?.exactSummary?.headline || "No calls recorded yet"}
                           </Text>
-                        </View>
-                        <View style={styles.stageTag}>
-                          <Text style={styles.stageTagText}>{item.status}</Text>
                         </View>
                         <Text style={styles.contactChevron}>›</Text>
                       </TouchableOpacity>
@@ -1510,34 +1451,6 @@ const styles = StyleSheet.create({
     color: "#8e8e93"
   },
 
-  // PIPELINE STAGES BAR
-  pipelineBar: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 12
-  },
-  pipelinePill: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 10,
-    backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#e5e5ea",
-    alignItems: "center"
-  },
-  pipelinePillActive: {
-    backgroundColor: "#000000",
-    borderColor: "#000000"
-  },
-  pipelinePillText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#000000"
-  },
-  pipelinePillTextActive: {
-    color: "#ffffff"
-  },
-
   // ACTION TASKS CHECKLIST
   tasksCard: {
     backgroundColor: "#ffffff",
@@ -1599,12 +1512,11 @@ const styles = StyleSheet.create({
   taskSendBtn: {
     backgroundColor: "#f2f2f7",
     paddingHorizontal: 8,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 8,
-    marginLeft: 8
-  },
-  taskSendBtnText: {
-    fontSize: 12
+    marginLeft: 8,
+    alignItems: "center",
+    justifyContent: "center"
   },
   counterBadge: {
     backgroundColor: "#f2f2f7",
@@ -1637,17 +1549,6 @@ const styles = StyleSheet.create({
   },
   seeAllLink: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#000000"
-  },
-  tagPill: {
-    backgroundColor: "#e5e5ea",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6
-  },
-  tagPillText: {
-    fontSize: 11,
     fontWeight: "600",
     color: "#000000"
   },
@@ -1741,7 +1642,7 @@ const styles = StyleSheet.create({
   },
   sendWhatsAppText: {
     color: "#ffffff",
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700"
   },
 
@@ -1757,24 +1658,10 @@ const styles = StyleSheet.create({
   callFeedTop: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8
-  },
-  feedAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#000000",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 10
-  },
-  feedAvatarText: {
-    color: "#ffffff",
-    fontSize: 13,
-    fontWeight: "700"
+    marginBottom: 6
   },
   feedName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
     color: "#000000"
   },
@@ -1782,17 +1669,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#8e8e93",
     marginTop: 1
-  },
-  outcomePill: {
-    backgroundColor: "#f2f2f7",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8
-  },
-  outcomePillText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#000000"
   },
   feedHeadline: {
     fontSize: 12,
@@ -1803,40 +1679,36 @@ const styles = StyleSheet.create({
   },
   feedActionButtons: {
     flexDirection: "row",
-    gap: 8
-  },
-  feedBtnCall: {
-    backgroundColor: "#f2f2f7",
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10
-  },
-  feedBtnCallText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#000000"
+    alignItems: "center",
+    justifyContent: "space-between"
   },
   feedBtnMessage: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
     backgroundColor: "#000000",
-    borderRadius: 8,
-    paddingVertical: 6,
-    alignItems: "center"
+    borderRadius: 9,
+    paddingVertical: 8,
+    marginRight: 10
   },
   feedBtnMessageText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "700",
     color: "#ffffff"
   },
   feedBtnDetails: {
-    paddingVertical: 6,
-    paddingHorizontal: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    backgroundColor: "#f2f2f7",
+    borderRadius: 9,
     justifyContent: "center"
   },
   feedBtnDetailsText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "600",
-    color: "#8e8e93"
+    color: "#3a3a3c"
   },
 
   // EMPTY STATE
@@ -1912,31 +1784,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#000000"
   },
-  filterRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 12
-  },
-  filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 14,
-    backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#e5e5ea"
-  },
-  filterChipActive: {
-    backgroundColor: "#000000",
-    borderColor: "#000000"
-  },
-  filterChipText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#8e8e93"
-  },
-  filterChipTextActive: {
-    color: "#ffffff"
-  },
   contactItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -1946,20 +1793,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     borderWidth: 1,
     borderColor: "#e5e5ea"
-  },
-  contactAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "#f2f2f7",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12
-  },
-  contactAvatarText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#000000"
   },
   contactItemName: {
     fontSize: 14,
@@ -1975,18 +1808,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#3a3a3c",
     marginTop: 3
-  },
-  stageTag: {
-    backgroundColor: "#f2f2f7",
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginRight: 6
-  },
-  stageTagText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#000000"
   },
   contactChevron: {
     fontSize: 20,
@@ -2029,31 +1850,19 @@ const styles = StyleSheet.create({
     padding: 4
   },
   actionRow: {
-    flexDirection: "row",
-    gap: 10,
     marginTop: 14
   },
-  actionBtnCall: {
-    flex: 1,
+  actionBtnMessage: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
     backgroundColor: "#000000",
     borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: "center"
-  },
-  actionBtnCallText: {
-    color: "#ffffff",
-    fontSize: 13,
-    fontWeight: "700"
-  },
-  actionBtnMessage: {
-    flex: 1,
-    backgroundColor: "#f2f2f7",
-    borderRadius: 10,
-    paddingVertical: 10,
-    alignItems: "center"
+    paddingVertical: 11
   },
   actionBtnMessageText: {
-    color: "#000000",
+    color: "#ffffff",
     fontSize: 13,
     fontWeight: "700"
   },
