@@ -30,6 +30,33 @@ import {
 import { requestAllPermissions, checkPermissionsStatus } from "./permissions";
 import { sendRecordingForAnalysis, authenticateCompany } from "./api";
 
+// Official CRM App Logo Component
+function AppLogo({ size = 64 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "inline-block", verticalAlign: "middle" }}
+    >
+      <defs>
+        <linearGradient id="brandGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#d6ff73" />
+          <stop offset="100%" stopColor="#8de31a" />
+        </linearGradient>
+      </defs>
+      <rect x="6" y="6" width="52" height="52" rx="18" fill="#18181b" stroke="#27272a" strokeWidth="1" />
+      <path
+        d="M20 32c0-7.2 5.4-13 12.2-13 4.1 0 7.5 1.7 9.8 4.5l-3.9 4c-1.5-1.7-3.4-2.5-5.9-2.5-4.7 0-8.2 3.6-8.2 8s3.5 8 8.2 8c2.7 0 4.8-.9 6.5-2.9l4 3.8C41.7 44.4 37.9 46 32.2 46 25.4 46 20 39.2 20 32Z"
+        fill="url(#brandGlow)"
+      />
+      <path d="M33 20.5h14v5.3H39v5.3h7.2v5.1H39V44h-6V20.5Z" fill="#FFFFFF" />
+    </svg>
+  );
+}
+
 // Official WhatsApp Vector Icon Component
 function WhatsAppIcon({ size = 16, color = "#25D366" }) {
   return (
@@ -147,6 +174,7 @@ const iconStyles = StyleSheet.create({
 
 export default function App() {
   // Navigation & State
+  const [isAppLoading, setIsAppLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("home"); // 'home' | 'history' | 'insights' | 'profile'
   const [session, setSession] = useState(null);
   const [leads, setLeads] = useState([]);
@@ -177,8 +205,15 @@ export default function App() {
   const [newLeadForm, setNewLeadForm] = useState({ name: "", phone: "", company: "" });
 
   useEffect(() => {
-    loadInitialData();
-    verifyPermissions();
+    const initApp = async () => {
+      await loadInitialData();
+      await verifyPermissions();
+      // App launch splash loading screen (1.5s)
+      setTimeout(() => {
+        setIsAppLoading(false);
+      }, 1500);
+    };
+    initApp();
   }, []);
 
   const loadInitialData = async () => {
@@ -415,17 +450,46 @@ export default function App() {
     return matchesSearch;
   });
 
+  // FULL SCREEN APP LAUNCH / SPLASH LOADING SCREEN
+  if (isAppLoading) {
+    return (
+      <SafeAreaView style={styles.splashContainer}>
+        <StatusBar barStyle="light-content" backgroundColor="#09090b" />
+        <View style={styles.splashContent}>
+          <View style={styles.splashLogoWrapper}>
+            <AppLogo size={88} />
+          </View>
+          <Text style={styles.splashTitle}>Call Intelligence</Text>
+          <Text style={styles.splashSubtitle}>Autonomous On-Device AI CRM</Text>
+
+          <View style={styles.splashLoaderTrack}>
+            <View style={styles.splashLoaderFill} />
+          </View>
+          <Text style={styles.splashStatusText}>Initializing on-device engine...</Text>
+        </View>
+
+        <View style={styles.splashFooter}>
+          <View style={styles.splashFooterDot} />
+          <Text style={styles.splashFooterText}>100% PRIVATE • GROQ 1.4s AI</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fafafa" />
 
-      {/* TOP HEADER: Clean Editorial Hierarchy */}
+      {/* TOP HEADER: Clean Editorial Hierarchy with App Logo */}
       <View style={styles.topBar}>
-        <View>
-          <Text style={styles.brandTitle}>Call Intelligence</Text>
-          <Text style={styles.brandSubtitle}>
-            {session ? session.user?.companyName || "Connected to Website" : "Groq 1.4s Engine • On-Device Private"}
-          </Text>
+        <View style={styles.brandTitleRow}>
+          <AppLogo size={28} />
+          <View style={{ marginLeft: 10 }}>
+            <Text style={styles.brandTitle}>Call Intelligence</Text>
+            <Text style={styles.brandSubtitle}>
+              {session ? session.user?.companyName || "Connected to Website" : "Groq 1.4s Engine • On-Device Private"}
+            </Text>
+          </View>
         </View>
 
         {session ? (
@@ -1016,6 +1080,16 @@ export default function App() {
               </Text>
               <TouchableOpacity
                 style={styles.outlineButton}
+                onPress={() => {
+                  setIsAppLoading(true);
+                  setTimeout(() => setIsAppLoading(false), 1500);
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.outlineButtonText}>⚡ Preview Splash Loading Screen</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.outlineButton, { marginTop: 8 }]}
                 onPress={handleResetShowcase}
                 activeOpacity={0.8}
               >
@@ -1249,6 +1323,79 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  // SPLASH SCREEN
+  splashContainer: {
+    flex: 1,
+    height: "100%",
+    backgroundColor: "#09090b",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 54,
+    paddingHorizontal: 24
+  },
+  splashContent: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  splashLogoWrapper: {
+    shadowColor: "#8de31a",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.28,
+    shadowRadius: 28,
+    elevation: 10,
+    marginBottom: 20
+  },
+  splashTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#ffffff",
+    letterSpacing: -0.4,
+    marginBottom: 4
+  },
+  splashSubtitle: {
+    fontSize: 12,
+    color: "#a1a1aa",
+    fontWeight: "500",
+    marginBottom: 26
+  },
+  splashLoaderTrack: {
+    width: 140,
+    height: 3,
+    backgroundColor: "#27272a",
+    borderRadius: 1.5,
+    overflow: "hidden",
+    marginBottom: 10
+  },
+  splashLoaderFill: {
+    width: "72%",
+    height: "100%",
+    backgroundColor: "#c9f94c",
+    borderRadius: 1.5
+  },
+  splashStatusText: {
+    fontSize: 11,
+    color: "#71717a",
+    fontWeight: "500"
+  },
+  splashFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6
+  },
+  splashFooterDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: "#10b981"
+  },
+  splashFooterText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#71717a",
+    letterSpacing: 0.8
+  },
+
   container: {
     flex: 1,
     height: "100%",
@@ -1265,6 +1412,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     borderBottomWidth: 1,
     borderBottomColor: "#f4f4f5"
+  },
+  brandTitleRow: {
+    flexDirection: "row",
+    alignItems: "center"
   },
   brandTitle: {
     fontSize: 16,
@@ -2039,7 +2190,7 @@ const styles = StyleSheet.create({
     color: "#71717a"
   },
 
-  // MINIMAL FLOATING NAVBAR (Preserved from user image)
+  // MINIMAL FLOATING NAVBAR
   navbarWrapper: {
     position: "absolute",
     bottom: 18,
