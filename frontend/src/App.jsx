@@ -23,7 +23,9 @@ import {
   getStoredSession,
   saveUserSession,
   clearUserSession,
-  deleteLeadById
+  deleteLeadById,
+  toggleTaskStatus,
+  resetToSampleData
 } from "./storage";
 import { requestAllPermissions, checkPermissionsStatus } from "./permissions";
 import { sendRecordingForAnalysis, authenticateCompany } from "./api";
@@ -136,6 +138,7 @@ export default function App() {
   const [selectedLead, setSelectedLead] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [settings, setSettings] = useState({
     backendUrl: "http://10.0.2.2:4000",
     websiteUrl: "http://localhost:5173",
@@ -249,17 +252,20 @@ export default function App() {
           callerIntent: "Inquiry on bulk order specs",
           discussionPoints: ["Requested delivery window and payment terms"],
           commitmentsMade: ["Agreed to dispatch quote before 5 PM"],
-          actionChecklist: [{ task: "Send quotation PDF", completed: false }],
+          actionChecklist: [
+            { id: `task_${Date.now()}_1`, task: "Send quotation PDF via WhatsApp", completed: false },
+            { id: `task_${Date.now()}_2`, task: "Confirm delivery lead time with inventory team", completed: false }
+          ],
           suggestedFollowUp: {
             dueDate: "Tomorrow 11 AM",
             recommendedAction: "Send WhatsApp Quote",
-            draftMessage: "Hi, thank you for taking our call. Please find our quote attached."
+            draftMessage: "Hi Priya, thank you for taking our call. Please find our quote attached."
           }
         }
       };
 
       setLatestCallAnalysis(callData);
-      const updatedLead = await addOrUpdateLeadFromCall(callData);
+      await addOrUpdateLeadFromCall(callData);
       const updatedList = await getLocalLeads();
       setLeads(updatedList);
       setActiveTab("home");
@@ -327,10 +333,71 @@ export default function App() {
     ]);
   };
 
+  const handleToggleTask = async (leadId, callId, taskId) => {
+    const updated = await toggleTaskStatus(leadId, callId, taskId);
+    if (updated) {
+      setLeads(updated);
+    }
+  };
+
+  const handleResetShowcase = async () => {
+    setShowQuickActionModal(false);
+    const sample = await resetToSampleData();
+    setLeads(sample);
+    setLatestCallAnalysis(null);
+    setSelectedLead(null);
+    Alert.alert("Showcase Restored", "Sample call pipeline and action items loaded.");
+  };
+
+  const handleSendWhatsApp = (phone, text) => {
+    const cleanPhone = phone ? phone.replace(/[^0-9+]/g, "") : "";
+    const encoded = encodeURIComponent(text || "Hello, following up on our discussion.");
+    Linking.openURL(`whatsapp://send?phone=${cleanPhone}&text=${encoded}`).catch(() => {
+      Linking.openURL(`sms:${cleanPhone}?body=${encoded}`);
+    });
+  };
+
+  // Collect action items across leads
+  const allActionItems = [];
+  leads.forEach((lead) => {
+    (lead.calls || []).forEach((call) => {
+      (call.detailedNotes?.actionChecklist || []).forEach((item, idx) => {
+        const isObj = typeof item === "object";
+        const taskId = isObj ? (item.id || item.task) : `task_${idx}`;
+        const taskText = isObj ? item.task : item;
+        const completed = isObj ? !!item.completed : false;
+        allActionItems.push({
+          leadId: lead.id,
+          leadName: lead.name,
+          leadPhone: lead.phone,
+          callId: call.id,
+          taskId,
+          taskText,
+          completed,
+          dueDate: call.detailedNotes?.suggestedFollowUp?.dueDate || "Today",
+          draftMessage: call.detailedNotes?.suggestedFollowUp?.draftMessage || ""
+        });
+      });
+    });
+  });
+
+  const pendingTasksCount = allActionItems.filter((t) => !t.completed).length;
+  const totalCallsCount = leads.reduce((acc, l) => acc + (l.calls?.length || 0), 0);
+
+  // Fallback to most recent call if latestCallAnalysis is null
+  const displayAnalysis = latestCallAnalysis || (leads[0]?.calls?.[0] ? {
+    callerNumber: leads[0].calls[0].callerNumber,
+    callerName: leads[0].calls[0].callerName || leads[0].name,
+    callDuration: leads[0].calls[0].durationSeconds,
+    exactSummary: leads[0].calls[0].exactSummary,
+    detailedNotes: leads[0].calls[0].detailedNotes
+  } : null);
+
   const filteredLeads = leads.filter((l) => {
     const matchesSearch =
       l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.phone.toLowerCase().includes(searchQuery.toLowerCase());
+      l.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (l.company && l.company.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = statusFilter === "All" || l.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -339,12 +406,12 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#f7f7f8" />
 
-      {/* TOP BAR: Clean, Light Header with Website Sync & Login Status */}
+      {/* TOP BAR: Clean, Light Header with Status & Account Pill */}
       <View style={styles.topBar}>
         <View>
           <Text style={styles.brandTitle}>Call Intelligence</Text>
           <Text style={styles.brandSubtitle}>
-            {session ? session.user?.companyName || "Connected to Website" : "Private On-Device Engine"}
+            {session ? session.user?.companyName || "Connected to Website" : "Groq 1.4s • Private On-Device"}
           </Text>
         </View>
 
@@ -370,7 +437,7 @@ export default function App() {
 
       {/* MAIN VIEWPORT */}
       <View style={styles.mainViewport}>
-        {/* TAB 1: HOME (Hero CTA + Active Intelligence Overview) */}
+        {/* TAB 1: HOME (Daily Feed, Audio Lab, Action Tasks & Analysis) */}
         {activeTab === "home" && (
           <ScrollView
             contentContainerStyle={styles.scrollContainer}
@@ -379,10 +446,10 @@ export default function App() {
             {/* HERO PRODUCTIVITY CARD */}
             <View style={styles.heroCard}>
               <View style={styles.heroContent}>
-                <Text style={styles.heroPre}>AUTO-CAPTURE ACTIVE</Text>
+                <Text style={styles.heroPre}>VOICE PIPELINE ACTIVE</Text>
                 <Text style={styles.heroTitle}>Convert recorded calls to actionable notes.</Text>
                 <Text style={styles.heroDesc}>
-                  Groq 1.4s engine transcribes audio, builds executive summaries, and extracts checklists straight into device storage.
+                  Stateless Groq engine transcribes audio, builds executive summaries, and extracts checklists straight into device storage.
                 </Text>
               </View>
 
@@ -394,61 +461,154 @@ export default function App() {
               >
                 {isProcessing ? (
                   <View style={styles.buttonRow}>
-                    <ActivityIndicator size="small" color="#ffffff" />
-                    <Text style={[styles.heroButtonText, { marginLeft: 8 }]}>Processing Audio...</Text>
+                    <ActivityIndicator size="small" color="#000000" />
+                    <Text style={[styles.heroButtonText, { marginLeft: 8 }]}>Processing Audio with Groq...</Text>
                   </View>
                 ) : (
-                  <Text style={styles.heroButtonText}>Process Latest Call</Text>
+                  <Text style={styles.heroButtonText}>Process Latest Call Recording</Text>
                 )}
               </TouchableOpacity>
             </View>
 
-            {/* QUICK ACTIONS ROW */}
-            <View style={styles.quickActionsRow}>
+            {/* AUDIO INTELLIGENCE & WAVEFORM LAB WIDGET */}
+            <View style={styles.waveformCard}>
+              <View style={styles.waveformTopRow}>
+                <View style={styles.waveformMeta}>
+                  <Text style={styles.waveformLabel}>RECORDING AUDIO LAB</Text>
+                  <Text style={styles.waveformFileName}>
+                    {displayAnalysis?.callerName
+                      ? `rec_${displayAnalysis.callerName.toLowerCase().replace(/\s+/g, "_")}.m4a`
+                      : "call_rec_9820045120.m4a"}
+                  </Text>
+                </View>
+                <View style={styles.aiBadge}>
+                  <View style={styles.aiBadgeDot} />
+                  <Text style={styles.aiBadgeText}>1.4s Groq</Text>
+                </View>
+              </View>
+
+              <View style={styles.waveformVisualRow}>
+                <TouchableOpacity
+                  style={styles.playButton}
+                  onPress={() => setIsPlayingAudio(!isPlayingAudio)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.playButtonIcon}>{isPlayingAudio ? "⏸" : "▶"}</Text>
+                </TouchableOpacity>
+
+                <View style={styles.barsContainer}>
+                  {[18, 32, 14, 40, 26, 48, 62, 36, 52, 68, 40, 28, 56, 44, 64, 30, 20].map((h, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.waveformBar,
+                        {
+                          height: isPlayingAudio
+                            ? Math.min(38, Math.max(8, h * (0.7 + ((i % 3) * 0.2))))
+                            : h * 0.55,
+                          backgroundColor: i < 9 ? "#000000" : "#c7c7cc"
+                        }
+                      ]}
+                    />
+                  ))}
+                </View>
+
+                <Text style={styles.timeTracker}>{isPlayingAudio ? "01:42" : "02:15"}</Text>
+              </View>
+            </View>
+
+            {/* PIPELINE STAGES BAR */}
+            <View style={styles.pipelineBar}>
               <TouchableOpacity
-                style={styles.quickActionCard}
-                onPress={() => setShowAddLeadModal(true)}
-                activeOpacity={0.8}
+                style={[styles.pipelinePill, statusFilter === "All" && styles.pipelinePillActive]}
+                onPress={() => { setStatusFilter("All"); setActiveTab("history"); }}
               >
-                <Text style={styles.quickActionIcon}>＋</Text>
-                <Text style={styles.quickActionText}>New Contact</Text>
+                <Text style={[styles.pipelinePillText, statusFilter === "All" && styles.pipelinePillTextActive]}>
+                  All Deals ({leads.length})
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.quickActionCard}
-                onPress={() => Linking.openURL(settings.websiteUrl)}
-                activeOpacity={0.8}
+                style={[styles.pipelinePill, statusFilter === "Quoting" && styles.pipelinePillActive]}
+                onPress={() => { setStatusFilter("Quoting"); setActiveTab("history"); }}
               >
-                <Text style={styles.quickActionIcon}>🌐</Text>
-                <Text style={styles.quickActionText}>Open Website</Text>
+                <Text style={[styles.pipelinePillText, statusFilter === "Quoting" && styles.pipelinePillTextActive]}>
+                  Quoting ({leads.filter((l) => l.status === "Quoting").length})
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.quickActionCard}
-                onPress={() => setActiveTab("history")}
-                activeOpacity={0.8}
+                style={[styles.pipelinePill, statusFilter === "Warm" && styles.pipelinePillActive]}
+                onPress={() => { setStatusFilter("Warm"); setActiveTab("history"); }}
               >
-                <Text style={styles.quickActionIcon}>📋</Text>
-                <Text style={styles.quickActionText}>View Calls</Text>
+                <Text style={[styles.pipelinePillText, statusFilter === "Warm" && styles.pipelinePillTextActive]}>
+                  Warm ({leads.filter((l) => l.status === "Warm").length})
+                </Text>
               </TouchableOpacity>
             </View>
 
-            {/* RECENT ANALYSIS BREAKDOWN */}
-            {latestCallAnalysis ? (
+            {/* ACTION ITEMS / CHECKLIST QUEUE */}
+            {allActionItems.length > 0 && (
               <View style={styles.sectionWrap}>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionTitle}>Latest Analysis</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text style={styles.sectionTitle}>Action Items</Text>
+                    <View style={styles.counterBadge}>
+                      <Text style={styles.counterBadgeText}>{pendingTasksCount} pending</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.tasksCard}>
+                  {allActionItems.slice(0, 4).map((item, idx) => (
+                    <TouchableOpacity
+                      key={item.taskId || idx}
+                      style={styles.taskItemRow}
+                      onPress={() => handleToggleTask(item.leadId, item.callId, item.taskId)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.taskCheckbox, item.completed && styles.taskCheckboxCompleted]}>
+                        {item.completed && <Text style={styles.taskCheckmark}>✓</Text>}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.taskItemText, item.completed && styles.taskItemTextCompleted]}>
+                          {item.taskText}
+                        </Text>
+                        <View style={styles.taskSubRow}>
+                          <Text style={styles.taskLeadName}>👤 {item.leadName}</Text>
+                          <Text style={styles.taskDueDate}> • ⏰ {item.dueDate}</Text>
+                        </View>
+                      </View>
+                      {item.draftMessage ? (
+                        <TouchableOpacity
+                          style={styles.taskSendBtn}
+                          onPress={() => handleSendWhatsApp(item.leadPhone, item.draftMessage)}
+                        >
+                          <Text style={styles.taskSendBtnText}>💬</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* LATEST CALL ANALYSIS BREAKDOWN */}
+            {displayAnalysis && (
+              <View style={styles.sectionWrap}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionTitle}>Latest Analysis: {displayAnalysis.callerName}</Text>
                   <View style={styles.tagPill}>
-                    <Text style={styles.tagPillText}>{latestCallAnalysis.exactSummary.keyOutcome}</Text>
+                    <Text style={styles.tagPillText}>{displayAnalysis.exactSummary?.keyOutcome || "Outcome"}</Text>
                   </View>
                 </View>
 
                 {/* Exact Summary Box */}
                 <View style={styles.specCard}>
                   <Text style={styles.specHeadline}>
-                    {latestCallAnalysis.exactSummary.headline}
+                    {displayAnalysis.exactSummary?.headline}
                   </Text>
-                  {latestCallAnalysis.exactSummary.bullets?.map((bullet, idx) => (
+                  {displayAnalysis.exactSummary?.bullets?.map((bullet, idx) => (
                     <View key={idx} style={styles.bulletRow}>
                       <View style={styles.bulletMarker} />
                       <Text style={styles.bulletText}>{bullet}</Text>
@@ -456,43 +616,97 @@ export default function App() {
                   ))}
                 </View>
 
-                {/* Detailed Action Checklist */}
-                <View style={styles.specCard}>
-                  <Text style={styles.cardSubheading}>Action Checklist</Text>
-                  {latestCallAnalysis.detailedNotes.actionChecklist?.map((task, idx) => (
-                    <View key={idx} style={styles.checkItemRow}>
-                      <View style={styles.checkboxCircle} />
-                      <Text style={styles.checkItemText}>{task.task || task}</Text>
-                    </View>
-                  ))}
-
-                  {latestCallAnalysis.detailedNotes.suggestedFollowUp?.draftMessage && (
-                    <View style={styles.draftBox}>
-                      <Text style={styles.draftBoxLabel}>Suggested Follow-Up Draft</Text>
-                      <Text style={styles.draftBoxBody}>
-                        "{latestCallAnalysis.detailedNotes.suggestedFollowUp.draftMessage}"
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.sendWhatsAppButton}
-                        onPress={() => {
-                          const msg = latestCallAnalysis.detailedNotes.suggestedFollowUp.draftMessage;
-                          Linking.openURL(`whatsapp://send?phone=${latestCallAnalysis.callerNumber}&text=${encodeURIComponent(msg)}`).catch(() => {
-                            Linking.openURL(`sms:${latestCallAnalysis.callerNumber}?body=${encodeURIComponent(msg)}`);
-                          });
-                        }}
-                      >
-                        <Text style={styles.sendWhatsAppText}>Send via WhatsApp / SMS →</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
+                {/* Suggested WhatsApp Draft Box */}
+                {displayAnalysis.detailedNotes?.suggestedFollowUp?.draftMessage && (
+                  <View style={styles.draftBox}>
+                    <Text style={styles.draftBoxLabel}>Suggested WhatsApp Follow-Up</Text>
+                    <Text style={styles.draftBoxBody}>
+                      "{displayAnalysis.detailedNotes.suggestedFollowUp.draftMessage}"
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.sendWhatsAppButton}
+                      onPress={() => handleSendWhatsApp(
+                        displayAnalysis.callerNumber,
+                        displayAnalysis.detailedNotes.suggestedFollowUp.draftMessage
+                      )}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.sendWhatsAppText}>Dispatch via WhatsApp / SMS →</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
-            ) : (
-              <View style={styles.emptyStateCard}>
-                <Text style={styles.emptyStateTitle}>No Calls Processed Yet</Text>
-                <Text style={styles.emptyStateDesc}>
-                  Tap 'Process Latest Call' above or tap '+' below to test simulated audio ingestion.
-                </Text>
+            )}
+
+            {/* RECENT CALL INTERACTIONS FEED */}
+            {leads.length > 0 && (
+              <View style={styles.sectionWrap}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionTitle}>Recent Conversations</Text>
+                  <TouchableOpacity onPress={() => setActiveTab("history")}>
+                    <Text style={styles.seeAllLink}>View All ({totalCallsCount}) →</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {leads.slice(0, 3).map((lead) => {
+                  const latestCall = lead.calls?.[0];
+                  const initials = lead.name
+                    ? lead.name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+                    : "C";
+                  return (
+                    <View key={lead.id} style={styles.callFeedCard}>
+                      <View style={styles.callFeedTop}>
+                        <View style={styles.feedAvatar}>
+                          <Text style={styles.feedAvatarText}>{initials}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.feedName}>{lead.name}</Text>
+                          <Text style={styles.feedMeta}>
+                            {lead.company} • {latestCall ? `${latestCall.durationSeconds}s call` : "New Contact"}
+                          </Text>
+                        </View>
+                        <View style={styles.outcomePill}>
+                          <Text style={styles.outcomePillText}>{lead.status}</Text>
+                        </View>
+                      </View>
+
+                      {latestCall?.exactSummary?.headline && (
+                        <Text style={styles.feedHeadline} numberOfLines={2}>
+                          "{latestCall.exactSummary.headline}"
+                        </Text>
+                      )}
+
+                      <View style={styles.feedActionButtons}>
+                        <TouchableOpacity
+                          style={styles.feedBtnCall}
+                          onPress={() => Linking.openURL(`tel:${lead.phone}`)}
+                        >
+                          <Text style={styles.feedBtnCallText}>📞 Call</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.feedBtnMessage}
+                          onPress={() => {
+                            const draft = latestCall?.detailedNotes?.suggestedFollowUp?.draftMessage || "Hello";
+                            handleSendWhatsApp(lead.phone, draft);
+                          }}
+                        >
+                          <Text style={styles.feedBtnMessageText}>💬 WhatsApp</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.feedBtnDetails}
+                          onPress={() => {
+                            setSelectedLead(lead);
+                            setActiveTab("history");
+                          }}
+                        >
+                          <Text style={styles.feedBtnDetailsText}>Notes ›</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
             )}
 
@@ -510,7 +724,7 @@ export default function App() {
               <View style={styles.statDivider} />
               <View style={styles.statCell}>
                 <Text style={styles.statNumber}>1.4s</Text>
-                <Text style={styles.statLabel}>AI Speed</Text>
+                <Text style={styles.statLabel}>Groq Latency</Text>
               </View>
             </View>
           </ScrollView>
@@ -562,9 +776,7 @@ export default function App() {
                       style={styles.actionBtnMessage}
                       onPress={() => {
                         const msg = selectedLead.calls?.[0]?.detailedNotes?.suggestedFollowUp?.draftMessage || "Hello";
-                        Linking.openURL(`whatsapp://send?phone=${selectedLead.phone}&text=${encodeURIComponent(msg)}`).catch(() => {
-                          Linking.openURL(`sms:${selectedLead.phone}?body=${encodeURIComponent(msg)}`);
-                        });
+                        handleSendWhatsApp(selectedLead.phone, msg);
                       }}
                       activeOpacity={0.85}
                     >
@@ -587,6 +799,32 @@ export default function App() {
                           <Text style={styles.bulletText}>{b}</Text>
                         </View>
                       ))}
+
+                      {call.detailedNotes?.actionChecklist?.length > 0 && (
+                        <View style={{ marginTop: 10 }}>
+                          <Text style={styles.miniHeader}>Action Items:</Text>
+                          {call.detailedNotes.actionChecklist.map((taskItem, tIdx) => {
+                            const isObj = typeof taskItem === "object";
+                            const taskText = isObj ? taskItem.task : taskItem;
+                            const completed = isObj ? !!taskItem.completed : false;
+                            const taskId = isObj ? (taskItem.id || taskItem.task) : `task_${tIdx}`;
+                            return (
+                              <TouchableOpacity
+                                key={taskId}
+                                style={styles.checkItemRow}
+                                onPress={() => handleToggleTask(selectedLead.id, call.id, taskId)}
+                              >
+                                <View style={[styles.taskCheckbox, completed && styles.taskCheckboxCompleted]}>
+                                  {completed && <Text style={styles.taskCheckmark}>✓</Text>}
+                                </View>
+                                <Text style={[styles.checkItemText, completed && styles.taskItemTextCompleted]}>
+                                  {taskText}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      )}
                     </View>
                   ))
                 ) : (
@@ -602,7 +840,7 @@ export default function App() {
                 <View style={styles.searchBarWrap}>
                   <TextInput
                     style={styles.searchBarInput}
-                    placeholder="Search by contact or phone..."
+                    placeholder="Search by contact, phone, or company..."
                     placeholderTextColor="#8e8e93"
                     value={searchQuery}
                     onChangeText={setSearchQuery}
@@ -611,7 +849,7 @@ export default function App() {
 
                 {/* Status Filter Chips */}
                 <View style={styles.filterRow}>
-                  {["All", "Warm", "New", "Quoting"].map((status) => (
+                  {["All", "Warm", "Quoting", "New"].map((status) => (
                     <TouchableOpacity
                       key={status}
                       style={[styles.filterChip, statusFilter === status && styles.filterChipActive]}
@@ -626,7 +864,7 @@ export default function App() {
 
                 {filteredLeads.length === 0 ? (
                   <View style={styles.emptyStateCard}>
-                    <Text style={styles.emptyStateTitle}>No Contacts Logged</Text>
+                    <Text style={styles.emptyStateTitle}>No Contacts Found</Text>
                     <Text style={styles.emptyStateDesc}>
                       Contacts are automatically added when calls are analyzed, or tap 'New Contact' to create one.
                     </Text>
@@ -656,10 +894,13 @@ export default function App() {
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={styles.contactItemName}>{item.name}</Text>
-                          <Text style={styles.contactItemPhone}>{item.phone}</Text>
+                          <Text style={styles.contactItemPhone}>{item.phone} • {item.company || "Individual"}</Text>
                           <Text style={styles.contactItemSnippet} numberOfLines={1}>
-                            {item.calls?.[0]?.exactSummary?.headline || item.company || "No calls recorded yet"}
+                            {item.calls?.[0]?.exactSummary?.headline || "No calls recorded yet"}
                           </Text>
+                        </View>
+                        <View style={styles.stageTag}>
+                          <Text style={styles.stageTagText}>{item.status}</Text>
                         </View>
                         <Text style={styles.contactChevron}>›</Text>
                       </TouchableOpacity>
@@ -671,43 +912,95 @@ export default function App() {
           </View>
         )}
 
-        {/* TAB 3: INSIGHTS & PIPELINE */}
+        {/* TAB 3: INSIGHTS & GOALS */}
         {activeTab === "insights" && (
           <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
             <View style={styles.insightsCard}>
               <Text style={styles.insightsPre}>PERFORMANCE TELEMETRY</Text>
-              <Text style={styles.insightsTitle}>Conversation Efficiency</Text>
+              <Text style={styles.insightsTitle}>Conversation Velocity</Text>
               <Text style={styles.insightsDesc}>
-                Overview of automated call analysis and follow-up completions across on-device logs.
+                Overview of automated call intelligence, task completion, and on-device pipeline health.
               </Text>
             </View>
 
+            {/* DAILY TARGET PROGRESS WIDGET */}
             <View style={styles.specCard}>
-              <Text style={styles.cardSubheading}>Summary of Activity</Text>
-              <View style={styles.insightRow}>
-                <Text style={styles.insightLabel}>Total Captured Calls</Text>
-                <Text style={styles.insightValue}>{leads.reduce((acc, l) => acc + (l.calls?.length || 0), 0)}</Text>
+              <View style={styles.meterHeader}>
+                <Text style={styles.cardSubheading}>Daily Calling Target</Text>
+                <Text style={styles.meterRatio}>{totalCallsCount} / 10 Calls</Text>
               </View>
-              <View style={styles.insightRow}>
-                <Text style={styles.insightLabel}>Contacts in Pipeline</Text>
-                <Text style={styles.insightValue}>{leads.length}</Text>
+              <View style={styles.progressBarTrack}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    { width: `${Math.min(100, Math.max(15, (totalCallsCount / 10) * 100))}%` }
+                  ]}
+                />
               </View>
-              <View style={styles.insightRow}>
-                <Text style={styles.insightLabel}>AI Ingestion Latency</Text>
-                <Text style={styles.insightValue}>1.4s (Groq)</Text>
-              </View>
-              <View style={styles.insightRow}>
-                <Text style={styles.insightLabel}>Website Sync Status</Text>
-                <Text style={[styles.insightValue, { color: session ? "#34c759" : "#8e8e93" }]}>
-                  {session ? "Connected" : "Offline"}
+              <Text style={styles.progressNote}>
+                {totalCallsCount >= 10 ? "Daily target accomplished!" : `${10 - totalCallsCount} calls remaining to hit daily outreach quota.`}
+              </Text>
+            </View>
+
+            {/* ACTION ITEMS RESOLUTION RATE */}
+            <View style={styles.specCard}>
+              <View style={styles.meterHeader}>
+                <Text style={styles.cardSubheading}>Follow-up Resolution</Text>
+                <Text style={styles.meterRatio}>
+                  {allActionItems.length > 0
+                    ? `${Math.round(((allActionItems.length - pendingTasksCount) / allActionItems.length) * 100)}%`
+                    : "100%"}
                 </Text>
+              </View>
+              <View style={styles.progressBarTrack}>
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    {
+                      width: `${allActionItems.length > 0 ? Math.round(((allActionItems.length - pendingTasksCount) / allActionItems.length) * 100) : 100}%`
+                    }
+                  ]}
+                />
+              </View>
+              <Text style={styles.progressNote}>
+                {pendingTasksCount} follow-up action items awaiting dispatch.
+              </Text>
+            </View>
+
+            {/* TIME SAVED METRIC */}
+            <View style={styles.timeSavedCard}>
+              <Text style={styles.timeSavedValue}>{Math.max(24, totalCallsCount * 12)} mins</Text>
+              <Text style={styles.timeSavedLabel}>Estimated Time Saved Today</Text>
+              <Text style={styles.timeSavedSub}>
+                Groq 1.4s extraction eliminates manual typing of call briefs and WhatsApp drafts.
+              </Text>
+            </View>
+
+            {/* 2X2 KEY PERFORMANCE INDICATORS */}
+            <View style={styles.kpiGrid}>
+              <View style={styles.kpiBox}>
+                <Text style={styles.kpiVal}>{totalCallsCount}</Text>
+                <Text style={styles.kpiLabel}>Processed Calls</Text>
+              </View>
+              <View style={styles.kpiBox}>
+                <Text style={styles.kpiVal}>{leads.length}</Text>
+                <Text style={styles.kpiLabel}>Pipeline Leads</Text>
+              </View>
+              <View style={styles.kpiBox}>
+                <Text style={styles.kpiVal}>1.4s</Text>
+                <Text style={styles.kpiLabel}>Avg AI Latency</Text>
+              </View>
+              <View style={styles.kpiBox}>
+                <Text style={styles.kpiVal}>100%</Text>
+                <Text style={styles.kpiLabel}>On-Device Privacy</Text>
               </View>
             </View>
 
+            {/* CRM PLATFORM LINK */}
             <View style={styles.specCard}>
               <Text style={styles.cardSubheading}>CRM Platform Quick Link</Text>
               <Text style={styles.specBody}>
-                Open company web portal for multi-agent governance, user onboarding, and team analytics.
+                Open web portal for team onboarding, enterprise settings, and analytics.
               </Text>
               <TouchableOpacity
                 style={styles.outlineButton}
@@ -755,11 +1048,11 @@ export default function App() {
               )}
             </View>
 
-            {/* System Permissions */}
+            {/* Android System Permissions */}
             <View style={styles.specCard}>
               <Text style={styles.cardSubheading}>Android Permissions</Text>
               <Text style={styles.specBody}>
-                Required for native detection of call start/hang-up and reading recorded audio files directly from phone storage.
+                Required for detecting phone call start/hang-up and reading recorded audio files directly from phone storage.
               </Text>
               <TouchableOpacity
                 style={styles.outlineButton}
@@ -772,21 +1065,27 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            {/* Storage Privacy */}
+            {/* Storage Privacy & Reset */}
             <View style={styles.specCard}>
               <Text style={styles.cardSubheading}>On-Device Local Storage</Text>
               <Text style={styles.specBody}>
                 All notes and summaries remain stored on your device via AsyncStorage. Zero cloud database exposure.
               </Text>
               <TouchableOpacity
-                style={styles.dangerOutlineButton}
+                style={styles.outlineButton}
+                onPress={handleResetShowcase}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.outlineButtonText}>🔄 Reload Showcase Demo Pipeline</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.dangerOutlineButton, { marginTop: 8 }]}
                 onPress={handleClearAll}
                 activeOpacity={0.8}
               >
                 <Text style={styles.dangerOutlineButtonText}>Wipe Local Records</Text>
               </TouchableOpacity>
             </View>
-
           </ScrollView>
         )}
       </View>
@@ -924,6 +1223,13 @@ export default function App() {
               }}
             >
               <Text style={styles.modalActionText}>＋ Add Contact Manually</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalActionButton}
+              onPress={handleResetShowcase}
+            >
+              <Text style={styles.modalActionText}>🔄 Reload Showcase Pipeline</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1068,7 +1374,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#000000",
     borderRadius: 18,
     padding: 20,
-    marginBottom: 14,
+    marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -1115,30 +1421,201 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
 
-  // QUICK ACTIONS ROW
-  quickActionsRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 14
-  },
-  quickActionCard: {
-    flex: 1,
+  // AUDIO LAB & WAVEFORM
+  waveformCard: {
     backgroundColor: "#ffffff",
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: "#e5e5ea"
   },
-  quickActionIcon: {
-    fontSize: 16,
-    marginBottom: 4,
+  waveformTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12
+  },
+  waveformMeta: {
+    flex: 1
+  },
+  waveformLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#8e8e93",
+    letterSpacing: 0.6
+  },
+  waveformFileName: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#000000",
+    marginTop: 2
+  },
+  aiBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f2f2f7",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8
+  },
+  aiBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#34c759",
+    marginRight: 5
+  },
+  aiBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
     color: "#000000"
   },
-  quickActionText: {
+  waveformVisualRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f7f7f8",
+    borderRadius: 12,
+    padding: 10
+  },
+  playButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#000000",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10
+  },
+  playButtonIcon: {
+    color: "#ffffff",
+    fontSize: 14,
+    marginLeft: 2
+  },
+  barsContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: 38,
+    marginRight: 10
+  },
+  waveformBar: {
+    width: 3.5,
+    borderRadius: 2
+  },
+  timeTracker: {
     fontSize: 11,
     fontWeight: "600",
+    color: "#8e8e93"
+  },
+
+  // PIPELINE STAGES BAR
+  pipelineBar: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12
+  },
+  pipelinePill: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#e5e5ea",
+    alignItems: "center"
+  },
+  pipelinePillActive: {
+    backgroundColor: "#000000",
+    borderColor: "#000000"
+  },
+  pipelinePillText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#000000"
+  },
+  pipelinePillTextActive: {
+    color: "#ffffff"
+  },
+
+  // ACTION TASKS CHECKLIST
+  tasksCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#e5e5ea"
+  },
+  taskItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f2f2f7"
+  },
+  taskCheckbox: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.8,
+    borderColor: "#8e8e93",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12
+  },
+  taskCheckboxCompleted: {
+    backgroundColor: "#000000",
+    borderColor: "#000000"
+  },
+  taskCheckmark: {
+    color: "#ffffff",
+    fontSize: 11,
+    fontWeight: "800"
+  },
+  taskItemText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#000000",
+    lineHeight: 18
+  },
+  taskItemTextCompleted: {
+    color: "#8e8e93",
+    textDecorationLine: "line-through"
+  },
+  taskSubRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 3
+  },
+  taskLeadName: {
+    fontSize: 11,
+    color: "#8e8e93",
+    fontWeight: "500"
+  },
+  taskDueDate: {
+    fontSize: 11,
+    color: "#8e8e93"
+  },
+  taskSendBtn: {
+    backgroundColor: "#f2f2f7",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    marginLeft: 8
+  },
+  taskSendBtnText: {
+    fontSize: 12
+  },
+  counterBadge: {
+    backgroundColor: "#f2f2f7",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8
+  },
+  counterBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
     color: "#000000"
   },
 
@@ -1157,6 +1634,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#000000",
     letterSpacing: -0.3
+  },
+  seeAllLink: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#000000"
   },
   tagPill: {
     backgroundColor: "#e5e5ea",
@@ -1209,32 +1691,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: "#000000",
-    marginBottom: 10,
+    marginBottom: 8,
     textTransform: "uppercase",
     letterSpacing: 0.4
+  },
+  miniHeader: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#8e8e93",
+    marginTop: 6,
+    marginBottom: 4,
+    textTransform: "uppercase"
   },
   checkItemRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8
-  },
-  checkboxCircle: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    borderWidth: 1.5,
-    borderColor: "#8e8e93",
-    marginRight: 10
+    marginTop: 6
   },
   checkItemText: {
     fontSize: 13,
-    color: "#1c1c1e"
+    color: "#1c1c1e",
+    marginLeft: 8
   },
   draftBox: {
-    marginTop: 12,
+    marginTop: 4,
     padding: 12,
     backgroundColor: "#f2f2f7",
-    borderRadius: 10
+    borderRadius: 12
   },
   draftBoxLabel: {
     fontSize: 11,
@@ -1253,13 +1736,107 @@ const styles = StyleSheet.create({
   sendWhatsAppButton: {
     backgroundColor: "#000000",
     borderRadius: 8,
-    paddingVertical: 7,
+    paddingVertical: 8,
     alignItems: "center"
   },
   sendWhatsAppText: {
     color: "#ffffff",
     fontSize: 11,
     fontWeight: "700"
+  },
+
+  // RECENT CALL INTERACTIONS FEED
+  callFeedCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#e5e5ea"
+  },
+  callFeedTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8
+  },
+  feedAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#000000",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10
+  },
+  feedAvatarText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "700"
+  },
+  feedName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#000000"
+  },
+  feedMeta: {
+    fontSize: 11,
+    color: "#8e8e93",
+    marginTop: 1
+  },
+  outcomePill: {
+    backgroundColor: "#f2f2f7",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8
+  },
+  outcomePillText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#000000"
+  },
+  feedHeadline: {
+    fontSize: 12,
+    color: "#3a3a3c",
+    lineHeight: 17,
+    fontStyle: "italic",
+    marginBottom: 10
+  },
+  feedActionButtons: {
+    flexDirection: "row",
+    gap: 8
+  },
+  feedBtnCall: {
+    backgroundColor: "#f2f2f7",
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10
+  },
+  feedBtnCallText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#000000"
+  },
+  feedBtnMessage: {
+    flex: 1,
+    backgroundColor: "#000000",
+    borderRadius: 8,
+    paddingVertical: 6,
+    alignItems: "center"
+  },
+  feedBtnMessageText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#ffffff"
+  },
+  feedBtnDetails: {
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    justifyContent: "center"
+  },
+  feedBtnDetailsText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#8e8e93"
   },
 
   // EMPTY STATE
@@ -1399,10 +1976,21 @@ const styles = StyleSheet.create({
     color: "#3a3a3c",
     marginTop: 3
   },
+  stageTag: {
+    backgroundColor: "#f2f2f7",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginRight: 6
+  },
+  stageTagText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#000000"
+  },
   contactChevron: {
     fontSize: 20,
-    color: "#c7c7cc",
-    marginLeft: 8
+    color: "#c7c7cc"
   },
 
   // CONTACT DOSSIER
@@ -1475,7 +2063,7 @@ const styles = StyleSheet.create({
     marginBottom: 6
   },
 
-  // INSIGHTS
+  // INSIGHTS & GOALS
   insightsCard: {
     backgroundColor: "#ffffff",
     borderRadius: 16,
@@ -1502,22 +2090,79 @@ const styles = StyleSheet.create({
     color: "#8e8e93",
     lineHeight: 18
   },
-  insightRow: {
+  meterHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f2f2f7"
+    marginBottom: 8
   },
-  insightLabel: {
-    fontSize: 13,
-    color: "#3a3a3c"
-  },
-  insightValue: {
+  meterRatio: {
     fontSize: 13,
     fontWeight: "700",
     color: "#000000"
+  },
+  progressBarTrack: {
+    height: 8,
+    backgroundColor: "#f2f2f7",
+    borderRadius: 4,
+    overflow: "hidden"
+  },
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: "#000000",
+    borderRadius: 4
+  },
+  progressNote: {
+    fontSize: 11,
+    color: "#8e8e93",
+    marginTop: 8
+  },
+  timeSavedCard: {
+    backgroundColor: "#000000",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14
+  },
+  timeSavedValue: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#ffffff"
+  },
+  timeSavedLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#aeaeb2",
+    marginTop: 2
+  },
+  timeSavedSub: {
+    fontSize: 11,
+    color: "#8e8e93",
+    marginTop: 6,
+    lineHeight: 16
+  },
+  kpiGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 14
+  },
+  kpiBox: {
+    width: "48%",
+    backgroundColor: "#ffffff",
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#e5e5ea"
+  },
+  kpiVal: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#000000"
+  },
+  kpiLabel: {
+    fontSize: 11,
+    color: "#8e8e93",
+    marginTop: 4
   },
 
   // PROFILE & SETTINGS
