@@ -1021,7 +1021,9 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f7f7f8"
+    height: "100%",
+    backgroundColor: "#f7f7f8",
+    overflow: "hidden"
   },
   topBar: {
     flexDirection: "row",
@@ -1077,11 +1079,13 @@ const styles = StyleSheet.create({
     marginRight: 6
   },
   mainViewport: {
-    flex: 1
+    flex: 1,
+    height: "100%",
+    overflow: "hidden"
   },
   scrollContainer: {
     padding: 16,
-    paddingBottom: 110
+    paddingBottom: 120
   },
 
   // HERO CARD
