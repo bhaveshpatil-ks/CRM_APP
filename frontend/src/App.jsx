@@ -787,31 +787,6 @@ export default function App() {
               </TouchableOpacity>
             </View>
 
-            {/* Settings & Endpoints */}
-            <View style={styles.specCard}>
-              <Text style={styles.cardSubheading}>App Configuration</Text>
-              <Text style={styles.inputLabel}>Backend AI Server URL:</Text>
-              <TextInput
-                style={styles.configInput}
-                value={settings.backendUrl}
-                onChangeText={(text) => {
-                  const updated = { ...settings, backendUrl: text };
-                  setSettings(updated);
-                  saveLocalSettings(updated);
-                }}
-              />
-
-              <Text style={[styles.inputLabel, { marginTop: 10 }]}>Connected Website URL:</Text>
-              <TextInput
-                style={styles.configInput}
-                value={settings.websiteUrl}
-                onChangeText={(text) => {
-                  const updated = { ...settings, websiteUrl: text };
-                  setSettings(updated);
-                  saveLocalSettings(updated);
-                }}
-              />
-            </View>
           </ScrollView>
         )}
       </View>
