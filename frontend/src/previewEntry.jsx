@@ -1,32 +1,8 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import Lenis from "lenis";
 import App from "./App";
 
 function PreviewRoot() {
-  React.useEffect(() => {
-    try {
-      const lenis = new Lenis({
-        duration: 1.2,
-        smoothWheel: true,
-        wheelMultiplier: 1.1
-      });
-
-      function raf(time) {
-        lenis.raf(time);
-        requestAnimationFrame(raf);
-      }
-
-      const rafId = requestAnimationFrame(raf);
-      return () => {
-        cancelAnimationFrame(rafId);
-        lenis.destroy();
-      };
-    } catch (e) {
-      console.warn("Lenis init skipped:", e);
-    }
-  }, []);
-
   return (
     <div style={{
       minHeight: "100vh",
@@ -59,13 +35,13 @@ function PreviewRoot() {
           marginBottom: "8px"
         }}>
           <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#238636", display: "inline-block" }}></span>
-          <span>GROQ 1.4s AI • ON-DEVICE STORAGE • LENIS SMOOTH</span>
+          <span>GROQ 1.4s AI • 100% ON-DEVICE PRIVATE STORAGE</span>
         </div>
         <h1 style={{ color: "#ffffff", margin: "0 0 4px 0", fontSize: "20px", fontWeight: "800", letterSpacing: "-0.4px" }}>
           Android Call CRM Intelligence
         </h1>
         <p style={{ color: "#8b949e", margin: 0, fontSize: "12px" }}>
-          Connected Mobile App • Company Login • 100% On-Device Private
+          Connected Mobile App • Company Login • On-Device Notes
         </p>
       </div>
 
@@ -91,11 +67,19 @@ function PreviewRoot() {
           height: "18px",
           backgroundColor: "#000000",
           borderRadius: "14px",
-          zIndex: 9999
+          zIndex: 9999,
+          pointerEvents: "none"
         }} />
 
         {/* App Container */}
-        <div style={{ flex: 1, marginTop: "14px", display: "flex", flexDirection: "column", height: "calc(100% - 14px)" }}>
+        <div style={{
+          flex: 1,
+          marginTop: "14px",
+          display: "flex",
+          flexDirection: "column",
+          height: "calc(100% - 14px)",
+          overflow: "hidden"
+        }}>
           <App />
         </div>
       </div>
