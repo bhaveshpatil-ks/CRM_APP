@@ -31,7 +31,7 @@ import { requestAllPermissions, checkPermissionsStatus } from "./permissions";
 import { sendRecordingForAnalysis, authenticateCompany } from "./api";
 
 // Official WhatsApp Vector Icon Component
-function WhatsAppIcon({ size = 16, color = "#ffffff" }) {
+function WhatsAppIcon({ size = 16, color = "#25D366" }) {
   return (
     <svg
       width={size}
@@ -45,9 +45,9 @@ function WhatsAppIcon({ size = 16, color = "#ffffff" }) {
   );
 }
 
-// Monochrome SVG-style geometric icons matching design specification
+// Minimalist Monochrome Geometric Icons (Matching User Reference Image)
 function HomeIcon({ active }) {
-  const color = active ? "#000000" : "#8e8e93";
+  const color = active ? "#18181b" : "#a1a1aa";
   return (
     <View style={iconStyles.box}>
       <View style={[iconStyles.homeRoof, { borderBottomColor: color }]} />
@@ -57,7 +57,7 @@ function HomeIcon({ active }) {
 }
 
 function CalendarIcon({ active }) {
-  const color = active ? "#000000" : "#8e8e93";
+  const color = active ? "#18181b" : "#a1a1aa";
   return (
     <View style={[iconStyles.calendarBox, { borderColor: color }]}>
       <View style={[iconStyles.calendarHeader, { backgroundColor: color }]} />
@@ -70,7 +70,7 @@ function CalendarIcon({ active }) {
 }
 
 function TrophyIcon({ active }) {
-  const color = active ? "#000000" : "#8e8e93";
+  const color = active ? "#18181b" : "#a1a1aa";
   return (
     <View style={iconStyles.trophyBox}>
       <View style={[iconStyles.trophyCup, { borderColor: color }]} />
@@ -81,7 +81,7 @@ function TrophyIcon({ active }) {
 }
 
 function UserIcon({ active }) {
-  const color = active ? "#000000" : "#8e8e93";
+  const color = active ? "#18181b" : "#a1a1aa";
   return (
     <View style={iconStyles.userBox}>
       <View style={[iconStyles.userHead, { backgroundColor: color }]} />
@@ -148,7 +148,7 @@ const iconStyles = StyleSheet.create({
 export default function App() {
   // Navigation & State
   const [activeTab, setActiveTab] = useState("home"); // 'home' | 'history' | 'insights' | 'profile'
-  const [session, setSession] = useState(null); // Authenticated User Session
+  const [session, setSession] = useState(null);
   const [leads, setLeads] = useState([]);
   const [selectedLead, setSelectedLead] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -417,14 +417,14 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f7f7f8" />
+      <StatusBar barStyle="dark-content" backgroundColor="#fafafa" />
 
-      {/* TOP BAR: Clean, Light Header with Status & Account Pill */}
+      {/* TOP HEADER: Clean Editorial Hierarchy */}
       <View style={styles.topBar}>
         <View>
           <Text style={styles.brandTitle}>Call Intelligence</Text>
           <Text style={styles.brandSubtitle}>
-            {session ? session.user?.companyName || "Connected to Website" : "Groq 1.4s • Private On-Device"}
+            {session ? session.user?.companyName || "Connected to Website" : "Groq 1.4s Engine • On-Device Private"}
           </Text>
         </View>
 
@@ -450,21 +450,22 @@ export default function App() {
 
       {/* MAIN VIEWPORT */}
       <View style={styles.mainViewport}>
-        {/* TAB 1: HOME (Daily Feed, Audio Lab, Action Tasks & Analysis) */}
+        {/* TAB 1: HOME */}
         {activeTab === "home" && (
           <ScrollView
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
           >
-            {/* HERO PRODUCTIVITY CARD */}
+            {/* HERO CARD: Confident Monochrome Focal Point */}
             <View style={styles.heroCard}>
-              <View style={styles.heroContent}>
-                <Text style={styles.heroPre}>VOICE PIPELINE ACTIVE</Text>
-                <Text style={styles.heroTitle}>Convert recorded calls to actionable notes.</Text>
-                <Text style={styles.heroDesc}>
-                  Stateless Groq engine transcribes audio, builds executive summaries, and extracts checklists straight into device storage.
-                </Text>
+              <View style={styles.heroPreRow}>
+                <View style={styles.emeraldPulse} />
+                <Text style={styles.heroPre}>Groq Whisper v3 • Ready</Text>
               </View>
+              <Text style={styles.heroTitle}>Convert recorded calls to actionable notes.</Text>
+              <Text style={styles.heroDesc}>
+                Stateless AI engine extracts summaries, checklists, and instant follow-up drafts directly into phone memory.
+              </Text>
 
               <TouchableOpacity
                 style={styles.heroPrimaryButton}
@@ -474,8 +475,8 @@ export default function App() {
               >
                 {isProcessing ? (
                   <View style={styles.buttonRow}>
-                    <ActivityIndicator size="small" color="#000000" />
-                    <Text style={[styles.heroButtonText, { marginLeft: 8 }]}>Processing Audio with Groq...</Text>
+                    <ActivityIndicator size="small" color="#18181b" />
+                    <Text style={styles.heroButtonText}>Processing Audio with Groq...</Text>
                   </View>
                 ) : (
                   <Text style={styles.heroButtonText}>Process Latest Call Recording</Text>
@@ -484,11 +485,11 @@ export default function App() {
             </View>
 
             {/* AUDIO INTELLIGENCE & WAVEFORM LAB WIDGET */}
-            <View style={styles.waveformCard}>
-              <View style={styles.waveformTopRow}>
-                <View style={styles.waveformMeta}>
-                  <Text style={styles.waveformLabel}>RECORDING AUDIO LAB</Text>
-                  <Text style={styles.waveformFileName}>
+            <View style={styles.cardSurface}>
+              <View style={styles.cardHeaderRow}>
+                <View>
+                  <Text style={styles.cardTitle}>Audio Recording Lab</Text>
+                  <Text style={styles.cardSubtitle}>
                     {displayAnalysis?.callerName
                       ? `rec_${displayAnalysis.callerName.toLowerCase().replace(/\s+/g, "_")}.m4a`
                       : "call_rec_9820045120.m4a"}
@@ -500,7 +501,7 @@ export default function App() {
                 </View>
               </View>
 
-              <View style={styles.waveformVisualRow}>
+              <View style={styles.waveformContainer}>
                 <TouchableOpacity
                   style={styles.playButton}
                   onPress={() => setIsPlayingAudio(!isPlayingAudio)}
@@ -510,16 +511,16 @@ export default function App() {
                 </TouchableOpacity>
 
                 <View style={styles.barsContainer}>
-                  {[18, 32, 14, 40, 26, 48, 62, 36, 52, 68, 40, 28, 56, 44, 64, 30, 20].map((h, i) => (
+                  {[16, 28, 14, 36, 22, 42, 54, 30, 46, 58, 34, 24, 48, 38, 56, 26, 18].map((h, i) => (
                     <View
                       key={i}
                       style={[
                         styles.waveformBar,
                         {
                           height: isPlayingAudio
-                            ? Math.min(38, Math.max(8, h * (0.7 + ((i % 3) * 0.2))))
+                            ? Math.min(36, Math.max(8, h * (0.75 + ((i % 3) * 0.2))))
                             : h * 0.55,
-                          backgroundColor: i < 9 ? "#000000" : "#c7c7cc"
+                          backgroundColor: i < 9 ? "#18181b" : "#d4d4d8"
                         }
                       ]}
                     />
@@ -530,23 +531,24 @@ export default function App() {
               </View>
             </View>
 
-            {/* ACTION ITEMS / CHECKLIST QUEUE */}
+            {/* ACTION ITEMS CHECKLIST */}
             {allActionItems.length > 0 && (
               <View style={styles.sectionWrap}>
                 <View style={styles.sectionHeaderRow}>
-                  <View style={{ flexDirection: "row", alignItems: "center" }}>
-                    <Text style={styles.sectionTitle}>Action Items</Text>
-                    <View style={styles.counterBadge}>
-                      <Text style={styles.counterBadgeText}>{pendingTasksCount} pending</Text>
-                    </View>
+                  <Text style={styles.sectionTitle}>Action Items</Text>
+                  <View style={styles.counterBadge}>
+                    <Text style={styles.counterBadgeText}>{pendingTasksCount} pending</Text>
                   </View>
                 </View>
 
-                <View style={styles.tasksCard}>
+                <View style={styles.cardSurface}>
                   {allActionItems.slice(0, 4).map((item, idx) => (
                     <TouchableOpacity
                       key={item.taskId || idx}
-                      style={styles.taskItemRow}
+                      style={[
+                        styles.taskItemRow,
+                        idx === allActionItems.slice(0, 4).length - 1 && { borderBottomWidth: 0 }
+                      ]}
                       onPress={() => handleToggleTask(item.leadId, item.callId, item.taskId)}
                       activeOpacity={0.7}
                     >
@@ -557,18 +559,17 @@ export default function App() {
                         <Text style={[styles.taskItemText, item.completed && styles.taskItemTextCompleted]}>
                           {item.taskText}
                         </Text>
-                        <View style={styles.taskSubRow}>
-                          <Text style={styles.taskLeadName}>{item.leadName}</Text>
-                          <Text style={styles.taskDueDate}> • {item.dueDate}</Text>
-                        </View>
+                        <Text style={styles.taskSubText}>
+                          {item.leadName} • {item.dueDate}
+                        </Text>
                       </View>
                       {item.draftMessage ? (
                         <TouchableOpacity
                           style={styles.taskSendBtn}
                           onPress={() => handleSendWhatsApp(item.leadPhone, item.draftMessage)}
-                          activeOpacity={0.8}
+                          activeOpacity={0.75}
                         >
-                          <WhatsAppIcon size={14} color="#25D366" />
+                          <WhatsAppIcon size={16} color="#25D366" />
                         </TouchableOpacity>
                       ) : null}
                     </TouchableOpacity>
@@ -577,16 +578,15 @@ export default function App() {
               </View>
             )}
 
-            {/* LATEST CALL ANALYSIS BREAKDOWN */}
+            {/* LATEST CALL BRIEFING */}
             {displayAnalysis && (
               <View style={styles.sectionWrap}>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionTitle}>Latest Analysis: {displayAnalysis.callerName}</Text>
+                  <Text style={styles.sectionTitle}>Latest Briefing: {displayAnalysis.callerName}</Text>
                 </View>
 
-                {/* Exact Summary Box */}
-                <View style={styles.specCard}>
-                  <Text style={styles.specHeadline}>
+                <View style={styles.cardSurface}>
+                  <Text style={styles.briefingHeadline}>
                     {displayAnalysis.exactSummary?.headline}
                   </Text>
                   {displayAnalysis.exactSummary?.bullets?.map((bullet, idx) => (
@@ -595,30 +595,28 @@ export default function App() {
                       <Text style={styles.bulletText}>{bullet}</Text>
                     </View>
                   ))}
-                </View>
 
-                {/* Suggested WhatsApp Draft Box */}
-                {displayAnalysis.detailedNotes?.suggestedFollowUp?.draftMessage && (
-                  <View style={styles.draftBox}>
-                    <Text style={styles.draftBoxLabel}>Suggested WhatsApp Follow-Up</Text>
-                    <Text style={styles.draftBoxBody}>
-                      "{displayAnalysis.detailedNotes.suggestedFollowUp.draftMessage}"
-                    </Text>
-                    <TouchableOpacity
-                      style={styles.sendWhatsAppButton}
-                      onPress={() => handleSendWhatsApp(
-                        displayAnalysis.callerNumber,
-                        displayAnalysis.detailedNotes.suggestedFollowUp.draftMessage
-                      )}
-                      activeOpacity={0.85}
-                    >
-                      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                        <WhatsAppIcon size={15} color="#ffffff" />
+                  {/* Suggested WhatsApp Draft Box */}
+                  {displayAnalysis.detailedNotes?.suggestedFollowUp?.draftMessage && (
+                    <View style={styles.draftBox}>
+                      <Text style={styles.draftBoxLabel}>Suggested Follow-Up Draft</Text>
+                      <Text style={styles.draftBoxBody}>
+                        "{displayAnalysis.detailedNotes.suggestedFollowUp.draftMessage}"
+                      </Text>
+                      <TouchableOpacity
+                        style={styles.sendWhatsAppButton}
+                        onPress={() => handleSendWhatsApp(
+                          displayAnalysis.callerNumber,
+                          displayAnalysis.detailedNotes.suggestedFollowUp.draftMessage
+                        )}
+                        activeOpacity={0.85}
+                      >
+                        <WhatsAppIcon size={16} color="#25D366" />
                         <Text style={styles.sendWhatsAppText}>Dispatch via WhatsApp</Text>
-                      </View>
-                    </TouchableOpacity>
-                  </View>
-                )}
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
               </View>
             )}
 
@@ -627,8 +625,8 @@ export default function App() {
               <View style={styles.sectionWrap}>
                 <View style={styles.sectionHeaderRow}>
                   <Text style={styles.sectionTitle}>Recent Conversations</Text>
-                  <TouchableOpacity onPress={() => setActiveTab("history")}>
-                    <Text style={styles.seeAllLink}>View All ({totalCallsCount}) →</Text>
+                  <TouchableOpacity onPress={() => setActiveTab("history")} activeOpacity={0.7}>
+                    <Text style={styles.seeAllLink}>View All ({totalCallsCount})</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -637,18 +635,18 @@ export default function App() {
                   return (
                     <View key={lead.id} style={styles.callFeedCard}>
                       <View style={styles.callFeedTop}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.feedName}>{lead.name}</Text>
-                          <Text style={styles.feedMeta}>
-                            {lead.company} • {latestCall ? `${latestCall.durationSeconds}s call` : "New Contact"}
-                          </Text>
-                        </View>
+                        <Text style={styles.feedName}>{lead.name}</Text>
+                        <Text style={styles.feedMeta}>
+                          {lead.company} • {latestCall ? `${latestCall.durationSeconds}s call` : "New Contact"}
+                        </Text>
                       </View>
 
                       {latestCall?.exactSummary?.headline && (
-                        <Text style={styles.feedHeadline} numberOfLines={2}>
-                          "{latestCall.exactSummary.headline}"
-                        </Text>
+                        <View style={styles.quoteWrap}>
+                          <Text style={styles.feedHeadline} numberOfLines={2}>
+                            "{latestCall.exactSummary.headline}"
+                          </Text>
+                        </View>
                       )}
 
                       <View style={styles.feedActionButtons}>
@@ -660,7 +658,7 @@ export default function App() {
                           }}
                           activeOpacity={0.85}
                         >
-                          <WhatsAppIcon size={15} color="#ffffff" />
+                          <WhatsAppIcon size={16} color="#25D366" />
                           <Text style={styles.feedBtnMessageText}>WhatsApp</Text>
                         </TouchableOpacity>
 
@@ -670,7 +668,7 @@ export default function App() {
                             setSelectedLead(lead);
                             setActiveTab("history");
                           }}
-                          activeOpacity={0.7}
+                          activeOpacity={0.75}
                         >
                           <Text style={styles.feedBtnDetailsText}>Notes ›</Text>
                         </TouchableOpacity>
@@ -715,7 +713,7 @@ export default function App() {
                   <Text style={styles.backButtonText}>← Back to Contacts</Text>
                 </TouchableOpacity>
 
-                <View style={styles.contactHeroCard}>
+                <View style={styles.cardSurface}>
                   <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <View>
                       <Text style={styles.contactHeroName}>{selectedLead.name}</Text>
@@ -724,8 +722,9 @@ export default function App() {
                     <TouchableOpacity
                       onPress={() => handleDeleteLead(selectedLead.id)}
                       style={styles.deleteLeadIcon}
+                      activeOpacity={0.7}
                     >
-                      <Text style={{ color: "#ff3b30", fontSize: 13, fontWeight: "600" }}>Delete</Text>
+                      <Text style={{ color: "#ef4444", fontSize: 13, fontWeight: "600" }}>Delete</Text>
                     </TouchableOpacity>
                   </View>
 
@@ -743,20 +742,22 @@ export default function App() {
                       }}
                       activeOpacity={0.85}
                     >
-                      <WhatsAppIcon size={16} color="#ffffff" />
+                      <WhatsAppIcon size={16} color="#25D366" />
                       <Text style={styles.actionBtnMessageText}>Send WhatsApp Message</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
 
-                <Text style={styles.sectionTitle}>Recorded Interactions</Text>
+                <Text style={[styles.sectionTitle, { marginTop: 16, marginBottom: 10 }]}>
+                  Recorded Interactions
+                </Text>
                 {selectedLead.calls && selectedLead.calls.length > 0 ? (
                   selectedLead.calls.map((call, idx) => (
-                    <View key={call.id || idx} style={styles.specCard}>
+                    <View key={call.id || idx} style={styles.cardSurface}>
                       <Text style={styles.callTimestamp}>
                         {new Date(call.date).toLocaleString()} • {call.durationSeconds}s
                       </Text>
-                      <Text style={styles.specHeadline}>{call.exactSummary?.headline}</Text>
+                      <Text style={styles.briefingHeadline}>{call.exactSummary?.headline}</Text>
                       {call.exactSummary?.bullets?.map((b, bIdx) => (
                         <View key={bIdx} style={styles.bulletRow}>
                           <View style={styles.bulletMarker} />
@@ -765,8 +766,8 @@ export default function App() {
                       ))}
 
                       {call.detailedNotes?.actionChecklist?.length > 0 && (
-                        <View style={{ marginTop: 10 }}>
-                          <Text style={styles.miniHeader}>Action Items:</Text>
+                        <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: "#f4f4f5", paddingTop: 10 }}>
+                          <Text style={styles.miniHeader}>Action Items</Text>
                           {call.detailedNotes.actionChecklist.map((taskItem, tIdx) => {
                             const isObj = typeof taskItem === "object";
                             const taskText = isObj ? taskItem.task : taskItem;
@@ -777,6 +778,7 @@ export default function App() {
                                 key={taskId}
                                 style={styles.checkItemRow}
                                 onPress={() => handleToggleTask(selectedLead.id, call.id, taskId)}
+                                activeOpacity={0.7}
                               >
                                 <View style={[styles.taskCheckbox, completed && styles.taskCheckboxCompleted]}>
                                   {completed && <Text style={styles.taskCheckmark}>✓</Text>}
@@ -805,7 +807,7 @@ export default function App() {
                   <TextInput
                     style={styles.searchBarInput}
                     placeholder="Search by contact, phone, or company..."
-                    placeholderTextColor="#8e8e93"
+                    placeholderTextColor="#a1a1aa"
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                   />
@@ -820,6 +822,7 @@ export default function App() {
                     <TouchableOpacity
                       style={[styles.outlineButton, { marginTop: 12, paddingHorizontal: 16 }]}
                       onPress={() => setShowAddLeadModal(true)}
+                      activeOpacity={0.8}
                     >
                       <Text style={styles.outlineButtonText}>＋ Add Contact</Text>
                     </TouchableOpacity>
@@ -856,18 +859,17 @@ export default function App() {
         {/* TAB 3: INSIGHTS & GOALS */}
         {activeTab === "insights" && (
           <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-            <View style={styles.insightsCard}>
-              <Text style={styles.insightsPre}>PERFORMANCE TELEMETRY</Text>
-              <Text style={styles.insightsTitle}>Conversation Velocity</Text>
-              <Text style={styles.insightsDesc}>
+            <View style={styles.cardSurface}>
+              <Text style={styles.sectionTitle}>Conversation Velocity</Text>
+              <Text style={styles.cardSubtitle}>
                 Overview of automated call intelligence, task completion, and on-device pipeline health.
               </Text>
             </View>
 
             {/* DAILY TARGET PROGRESS WIDGET */}
-            <View style={styles.specCard}>
+            <View style={styles.cardSurface}>
               <View style={styles.meterHeader}>
-                <Text style={styles.cardSubheading}>Daily Calling Target</Text>
+                <Text style={styles.meterLabel}>Daily Calling Target</Text>
                 <Text style={styles.meterRatio}>{totalCallsCount} / 10 Calls</Text>
               </View>
               <View style={styles.progressBarTrack}>
@@ -884,9 +886,9 @@ export default function App() {
             </View>
 
             {/* ACTION ITEMS RESOLUTION RATE */}
-            <View style={styles.specCard}>
+            <View style={styles.cardSurface}>
               <View style={styles.meterHeader}>
-                <Text style={styles.cardSubheading}>Follow-up Resolution</Text>
+                <Text style={styles.meterLabel}>Follow-up Resolution</Text>
                 <Text style={styles.meterRatio}>
                   {allActionItems.length > 0
                     ? `${Math.round(((allActionItems.length - pendingTasksCount) / allActionItems.length) * 100)}%`
@@ -938,10 +940,10 @@ export default function App() {
             </View>
 
             {/* CRM PLATFORM LINK */}
-            <View style={styles.specCard}>
-              <Text style={styles.cardSubheading}>CRM Platform Quick Link</Text>
+            <View style={styles.cardSurface}>
+              <Text style={styles.meterLabel}>CRM Platform Web Portal</Text>
               <Text style={styles.specBody}>
-                Open web portal for team onboarding, enterprise settings, and analytics.
+                Open web dashboard for multi-agent governance, team onboarding, and enterprise analytics.
               </Text>
               <TouchableOpacity
                 style={styles.outlineButton}
@@ -958,11 +960,11 @@ export default function App() {
         {activeTab === "profile" && (
           <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
             {/* Account Status / Company Login */}
-            <View style={styles.specCard}>
-              <Text style={styles.cardSubheading}>Company Authentication</Text>
+            <View style={styles.cardSurface}>
+              <Text style={styles.meterLabel}>Company Authentication</Text>
               {session ? (
                 <View>
-                  <Text style={styles.specHeadline}>{session.user?.companyName || "Call Flow CRM"}</Text>
+                  <Text style={styles.contactHeroName}>{session.user?.companyName || "Call Flow CRM"}</Text>
                   <Text style={styles.specBody}>Company ID: {session.user?.appUserId || "CALL-240001"}</Text>
                   <Text style={styles.specBody}>Admin: {session.user?.name || "Administrator"}</Text>
                   <TouchableOpacity
@@ -990,8 +992,8 @@ export default function App() {
             </View>
 
             {/* Android System Permissions */}
-            <View style={styles.specCard}>
-              <Text style={styles.cardSubheading}>Android Permissions</Text>
+            <View style={styles.cardSurface}>
+              <Text style={styles.meterLabel}>Android Permissions</Text>
               <Text style={styles.specBody}>
                 Required for detecting phone call start/hang-up and reading recorded audio files directly from phone storage.
               </Text>
@@ -1007,8 +1009,8 @@ export default function App() {
             </View>
 
             {/* Storage Privacy & Reset */}
-            <View style={styles.specCard}>
-              <Text style={styles.cardSubheading}>On-Device Local Storage</Text>
+            <View style={styles.cardSurface}>
+              <Text style={styles.meterLabel}>On-Device Storage & Privacy</Text>
               <Text style={styles.specBody}>
                 All notes and summaries remain stored on your device via AsyncStorage. Zero cloud database exposure.
               </Text>
@@ -1045,7 +1047,7 @@ export default function App() {
               value={loginIdentifier}
               onChangeText={setLoginIdentifier}
               placeholder="e.g. CALL-240001 or admin"
-              placeholderTextColor="#8e8e93"
+              placeholderTextColor="#a1a1aa"
               autoCapitalize="none"
             />
 
@@ -1056,13 +1058,14 @@ export default function App() {
               onChangeText={setLoginPassword}
               secureTextEntry
               placeholder="Enter password"
-              placeholderTextColor="#8e8e93"
+              placeholderTextColor="#a1a1aa"
             />
 
             <TouchableOpacity
-              style={[styles.heroPrimaryButton, { marginTop: 16, backgroundColor: "#000000" }]}
+              style={[styles.heroPrimaryButton, { marginTop: 16, backgroundColor: "#18181b" }]}
               onPress={handleLogin}
               disabled={isLoggingIn}
+              activeOpacity={0.85}
             >
               {isLoggingIn ? (
                 <ActivityIndicator color="#ffffff" />
@@ -1095,7 +1098,7 @@ export default function App() {
               value={newLeadForm.name}
               onChangeText={(text) => setNewLeadForm({ ...newLeadForm, name: text })}
               placeholder="e.g. Rahul Sharma"
-              placeholderTextColor="#8e8e93"
+              placeholderTextColor="#a1a1aa"
             />
 
             <Text style={[styles.inputLabel, { marginTop: 10 }]}>Phone Number:</Text>
@@ -1104,7 +1107,7 @@ export default function App() {
               value={newLeadForm.phone}
               onChangeText={(text) => setNewLeadForm({ ...newLeadForm, phone: text })}
               placeholder="e.g. +91 98765 43210"
-              placeholderTextColor="#8e8e93"
+              placeholderTextColor="#a1a1aa"
               keyboardType="phone-pad"
             />
 
@@ -1114,12 +1117,13 @@ export default function App() {
               value={newLeadForm.company}
               onChangeText={(text) => setNewLeadForm({ ...newLeadForm, company: text })}
               placeholder="e.g. Apex Industries"
-              placeholderTextColor="#8e8e93"
+              placeholderTextColor="#a1a1aa"
             />
 
             <TouchableOpacity
-              style={[styles.heroPrimaryButton, { marginTop: 16, backgroundColor: "#000000" }]}
+              style={[styles.heroPrimaryButton, { marginTop: 16, backgroundColor: "#18181b" }]}
               onPress={handleSaveManualLead}
+              activeOpacity={0.85}
             >
               <Text style={[styles.heroButtonText, { color: "#ffffff" }]}>Save Contact</Text>
             </TouchableOpacity>
@@ -1145,6 +1149,7 @@ export default function App() {
             <TouchableOpacity
               style={styles.modalActionButton}
               onPress={() => handleProcessRecording("+91 98200 11223", "Priya Sharma")}
+              activeOpacity={0.75}
             >
               <Text style={styles.modalActionText}>⚡ Process Call from Priya Sharma</Text>
             </TouchableOpacity>
@@ -1152,6 +1157,7 @@ export default function App() {
             <TouchableOpacity
               style={styles.modalActionButton}
               onPress={() => handleProcessRecording("+91 97110 44556", "Vikram Patel")}
+              activeOpacity={0.75}
             >
               <Text style={styles.modalActionText}>⚡ Process Call from Vikram Patel</Text>
             </TouchableOpacity>
@@ -1162,6 +1168,7 @@ export default function App() {
                 setShowQuickActionModal(false);
                 setShowAddLeadModal(true);
               }}
+              activeOpacity={0.75}
             >
               <Text style={styles.modalActionText}>＋ Add Contact Manually</Text>
             </TouchableOpacity>
@@ -1169,6 +1176,7 @@ export default function App() {
             <TouchableOpacity
               style={styles.modalActionButton}
               onPress={handleResetShowcase}
+              activeOpacity={0.75}
             >
               <Text style={styles.modalActionText}>🔄 Reload Showcase Pipeline</Text>
             </TouchableOpacity>
@@ -1244,35 +1252,35 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     height: "100%",
-    backgroundColor: "#f7f7f8",
+    backgroundColor: "#fafafa",
     overflow: "hidden"
   },
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 10,
+    paddingHorizontal: 18,
+    paddingTop: 12,
     paddingBottom: 12,
     backgroundColor: "#ffffff",
     borderBottomWidth: 1,
-    borderBottomColor: "#ededf0"
+    borderBottomColor: "#f4f4f5"
   },
   brandTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "700",
-    color: "#000000",
+    color: "#18181b",
     letterSpacing: -0.3
   },
   brandSubtitle: {
     fontSize: 11,
-    color: "#8e8e93",
+    color: "#71717a",
     marginTop: 1
   },
   userBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f2f2f7",
+    backgroundColor: "#f4f4f5",
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 14
@@ -1280,12 +1288,12 @@ const styles = StyleSheet.create({
   userBadgeText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#000000"
+    color: "#18181b"
   },
   loginPill: {
-    backgroundColor: "#000000",
+    backgroundColor: "#18181b",
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 14
   },
   loginPillText: {
@@ -1297,7 +1305,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#34c759",
+    backgroundColor: "#10b981",
     marginRight: 6
   },
   mainViewport: {
@@ -1307,54 +1315,62 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     padding: 16,
-    paddingBottom: 120
+    paddingBottom: 110
   },
 
   // HERO CARD
   heroCard: {
-    backgroundColor: "#000000",
-    borderRadius: 18,
-    padding: 20,
+    backgroundColor: "#09090b",
+    borderRadius: 16,
+    padding: 18,
     marginBottom: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.08,
     shadowRadius: 10,
     elevation: 3
   },
-  heroContent: {
-    marginBottom: 16
+  heroPreRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8
+  },
+  emeraldPulse: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#10b981",
+    marginRight: 6
   },
   heroPre: {
-    color: "#8e8e93",
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 0.8,
-    marginBottom: 6
+    color: "#a1a1aa",
+    fontSize: 11,
+    fontWeight: "600"
   },
   heroTitle: {
     color: "#ffffff",
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
-    lineHeight: 26,
-    letterSpacing: -0.4,
-    marginBottom: 8
+    lineHeight: 24,
+    letterSpacing: -0.3,
+    marginBottom: 6
   },
   heroDesc: {
-    color: "#aeaeb2",
-    fontSize: 13,
-    lineHeight: 18
+    color: "#a1a1aa",
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 14
   },
   heroPrimaryButton: {
     backgroundColor: "#ffffff",
-    borderRadius: 12,
-    paddingVertical: 12,
+    borderRadius: 10,
+    paddingVertical: 11,
     alignItems: "center",
     justifyContent: "center"
   },
   heroButtonText: {
-    color: "#000000",
-    fontSize: 14,
+    color: "#09090b",
+    fontSize: 13,
     fontWeight: "700"
   },
   buttonRow: {
@@ -1362,75 +1378,72 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
 
-  // AUDIO LAB & WAVEFORM
-  waveformCard: {
+  // CARD SURFACES (Modern Minimalist Base)
+  cardSurface: {
     backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 14,
+    padding: 15,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#e5e5ea"
+    borderColor: "#e4e4e7"
   },
-  waveformTopRow: {
+  cardHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12
   },
-  waveformMeta: {
-    flex: 1
-  },
-  waveformLabel: {
-    fontSize: 10,
+  cardTitle: {
+    fontSize: 14,
     fontWeight: "700",
-    color: "#8e8e93",
-    letterSpacing: 0.6
+    color: "#18181b"
   },
-  waveformFileName: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#000000",
+  cardSubtitle: {
+    fontSize: 11,
+    color: "#71717a",
     marginTop: 2
   },
+
+  // AUDIO LAB & WAVEFORM
   aiBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f2f2f7",
+    backgroundColor: "#f4f4f5",
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8
+    borderRadius: 6
   },
   aiBadgeDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#34c759",
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: "#10b981",
     marginRight: 5
   },
   aiBadgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
-    color: "#000000"
+    color: "#18181b"
   },
-  waveformVisualRow: {
+  waveformContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f7f7f8",
-    borderRadius: 12,
+    backgroundColor: "#f4f4f5",
+    borderRadius: 10,
     padding: 10
   },
   playButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: "#000000",
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#18181b",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 10
   },
   playButtonIcon: {
     color: "#ffffff",
-    fontSize: 14,
+    fontSize: 13,
     marginLeft: 2
   },
   barsContainer: {
@@ -1438,47 +1451,40 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    height: 38,
+    height: 36,
     marginRight: 10
   },
   waveformBar: {
-    width: 3.5,
-    borderRadius: 2
+    width: 3,
+    borderRadius: 1.5
   },
   timeTracker: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#8e8e93"
+    color: "#71717a"
   },
 
   // ACTION TASKS CHECKLIST
-  tasksCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#e5e5ea"
-  },
   taskItemRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 10,
+    paddingVertical: 9,
     borderBottomWidth: 1,
-    borderBottomColor: "#f2f2f7"
+    borderBottomColor: "#f4f4f5"
   },
   taskCheckbox: {
     width: 18,
     height: 18,
     borderRadius: 9,
     borderWidth: 1.8,
-    borderColor: "#8e8e93",
+    borderColor: "#a1a1aa",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12
   },
   taskCheckboxCompleted: {
-    backgroundColor: "#000000",
-    borderColor: "#000000"
+    backgroundColor: "#18181b",
+    borderColor: "#18181b"
   },
   taskCheckmark: {
     color: "#ffffff",
@@ -1488,29 +1494,20 @@ const styles = StyleSheet.create({
   taskItemText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#000000",
+    color: "#18181b",
     lineHeight: 18
   },
   taskItemTextCompleted: {
-    color: "#8e8e93",
+    color: "#a1a1aa",
     textDecorationLine: "line-through"
   },
-  taskSubRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 3
-  },
-  taskLeadName: {
+  taskSubText: {
     fontSize: 11,
-    color: "#8e8e93",
-    fontWeight: "500"
-  },
-  taskDueDate: {
-    fontSize: 11,
-    color: "#8e8e93"
+    color: "#71717a",
+    marginTop: 2
   },
   taskSendBtn: {
-    backgroundColor: "#f2f2f7",
+    backgroundColor: "#f4f4f5",
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 8,
@@ -1519,126 +1516,95 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   counterBadge: {
-    backgroundColor: "#f2f2f7",
+    backgroundColor: "#f4f4f5",
     paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 10,
-    marginLeft: 8
+    borderRadius: 8
   },
   counterBadgeText: {
     fontSize: 10,
     fontWeight: "700",
-    color: "#000000"
+    color: "#18181b"
   },
 
   // SECTION STYLING
   sectionWrap: {
-    marginBottom: 14
+    marginBottom: 12
   },
   sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10
+    marginBottom: 8
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#000000",
-    letterSpacing: -0.3
-  },
-  seeAllLink: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#000000"
-  },
-
-  // SPEC CARDS
-  specCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#e5e5ea"
-  },
-  specHeadline: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#000000",
-    lineHeight: 20,
+    color: "#18181b",
+    letterSpacing: -0.2
+  },
+  seeAllLink: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#71717a"
+  },
+
+  // BRIEFING CARD
+  briefingHeadline: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#18181b",
+    lineHeight: 19,
     marginBottom: 8
   },
   bulletRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginTop: 6
+    marginTop: 5
   },
   bulletMarker: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#000000",
+    backgroundColor: "#18181b",
     marginTop: 7,
     marginRight: 8
   },
   bulletText: {
-    fontSize: 13,
-    color: "#3a3a3c",
-    lineHeight: 19,
+    fontSize: 12,
+    color: "#3f3f46",
+    lineHeight: 18,
     flex: 1
   },
-  cardSubheading: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#000000",
-    marginBottom: 8,
-    textTransform: "uppercase",
-    letterSpacing: 0.4
-  },
-  miniHeader: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#8e8e93",
-    marginTop: 6,
-    marginBottom: 4,
-    textTransform: "uppercase"
-  },
-  checkItemRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 6
-  },
-  checkItemText: {
-    fontSize: 13,
-    color: "#1c1c1e",
-    marginLeft: 8
-  },
   draftBox: {
-    marginTop: 4,
+    marginTop: 10,
     padding: 12,
-    backgroundColor: "#f2f2f7",
-    borderRadius: 12
+    backgroundColor: "#f4f4f5",
+    borderRadius: 10
   },
   draftBoxLabel: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
-    color: "#8e8e93",
+    color: "#71717a",
     marginBottom: 4,
-    textTransform: "uppercase"
+    textTransform: "uppercase",
+    letterSpacing: 0.3
   },
   draftBoxBody: {
-    fontSize: 13,
-    color: "#1c1c1e",
+    fontSize: 12,
+    color: "#18181b",
     fontStyle: "italic",
-    lineHeight: 18,
+    lineHeight: 17,
     marginBottom: 8
   },
   sendWhatsAppButton: {
-    backgroundColor: "#000000",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#18181b",
     borderRadius: 8,
-    paddingVertical: 8,
-    alignItems: "center"
+    paddingVertical: 9
   },
   sendWhatsAppText: {
     color: "#ffffff",
@@ -1646,41 +1612,45 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   },
 
-  // RECENT CALL INTERACTIONS FEED
+  // RECENT CONVERSATIONS FEED
   callFeedCard: {
     backgroundColor: "#ffffff",
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#e5e5ea"
+    borderColor: "#e4e4e7"
   },
   callFeedTop: {
-    flexDirection: "row",
-    alignItems: "center",
     marginBottom: 6
   },
   feedName: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
-    color: "#000000"
+    color: "#18181b"
   },
   feedMeta: {
     fontSize: 11,
-    color: "#8e8e93",
+    color: "#71717a",
     marginTop: 1
+  },
+  quoteWrap: {
+    borderLeftWidth: 2,
+    borderLeftColor: "#e4e4e7",
+    paddingLeft: 8,
+    marginVertical: 6
   },
   feedHeadline: {
     fontSize: 12,
-    color: "#3a3a3c",
+    color: "#3f3f46",
     lineHeight: 17,
-    fontStyle: "italic",
-    marginBottom: 10
+    fontStyle: "italic"
   },
   feedActionButtons: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between"
+    justifyContent: "space-between",
+    marginTop: 6
   },
   feedBtnMessage: {
     flex: 1,
@@ -1688,10 +1658,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 7,
-    backgroundColor: "#000000",
-    borderRadius: 9,
+    backgroundColor: "#18181b",
+    borderRadius: 8,
     paddingVertical: 8,
-    marginRight: 10
+    marginRight: 8
   },
   feedBtnMessageText: {
     fontSize: 12,
@@ -1701,14 +1671,14 @@ const styles = StyleSheet.create({
   feedBtnDetails: {
     paddingVertical: 7,
     paddingHorizontal: 12,
-    backgroundColor: "#f2f2f7",
-    borderRadius: 9,
+    backgroundColor: "#f4f4f5",
+    borderRadius: 8,
     justifyContent: "center"
   },
   feedBtnDetailsText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
-    color: "#3a3a3c"
+    color: "#3f3f46"
   },
 
   // EMPTY STATE
@@ -1718,19 +1688,19 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 14,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#e5e5ea"
+    borderColor: "#e4e4e7"
   },
   emptyStateTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: "700",
-    color: "#000000",
+    color: "#18181b",
     marginBottom: 4
   },
   emptyStateDesc: {
     fontSize: 12,
-    color: "#8e8e93",
+    color: "#71717a",
     textAlign: "center",
     lineHeight: 18
   },
@@ -1739,29 +1709,29 @@ const styles = StyleSheet.create({
   statsStrip: {
     flexDirection: "row",
     backgroundColor: "#ffffff",
-    borderRadius: 14,
-    paddingVertical: 14,
+    borderRadius: 12,
+    paddingVertical: 12,
     borderWidth: 1,
-    borderColor: "#e5e5ea"
+    borderColor: "#e4e4e7"
   },
   statCell: {
     flex: 1,
     alignItems: "center"
   },
   statNumber: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "700",
-    color: "#000000"
+    color: "#18181b"
   },
   statLabel: {
     fontSize: 10,
-    color: "#8e8e93",
+    color: "#71717a",
     marginTop: 2
   },
   statDivider: {
     width: 1,
     height: "60%",
-    backgroundColor: "#e5e5ea",
+    backgroundColor: "#e4e4e7",
     alignSelf: "center"
   },
 
@@ -1769,7 +1739,7 @@ const styles = StyleSheet.create({
   directoryContainer: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingTop: 14
+    paddingTop: 12
   },
   searchBarWrap: {
     marginBottom: 10
@@ -1777,12 +1747,12 @@ const styles = StyleSheet.create({
   searchBarInput: {
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#e5e5ea",
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 13,
-    color: "#000000"
+    borderColor: "#e4e4e7",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 12,
+    color: "#18181b"
   },
   contactItem: {
     flexDirection: "row",
@@ -1792,26 +1762,26 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: "#e5e5ea"
+    borderColor: "#e4e4e7"
   },
   contactItemName: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#000000"
+    color: "#18181b"
   },
   contactItemPhone: {
     fontSize: 11,
-    color: "#8e8e93",
+    color: "#71717a",
     marginTop: 1
   },
   contactItemSnippet: {
     fontSize: 11,
-    color: "#3a3a3c",
+    color: "#3f3f46",
     marginTop: 3
   },
   contactChevron: {
-    fontSize: 20,
-    color: "#c7c7cc"
+    fontSize: 18,
+    color: "#a1a1aa"
   },
 
   // CONTACT DOSSIER
@@ -1819,205 +1789,194 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   backButtonText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
-    color: "#000000"
-  },
-  contactHeroCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#e5e5ea"
+    color: "#18181b"
   },
   contactHeroName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
-    color: "#000000"
+    color: "#18181b"
   },
   contactHeroPhone: {
-    fontSize: 13,
-    color: "#8e8e93",
+    fontSize: 12,
+    color: "#71717a",
     marginTop: 2
   },
   contactHeroMeta: {
     fontSize: 11,
-    color: "#3a3a3c",
+    color: "#3f3f46",
     marginTop: 4
   },
   deleteLeadIcon: {
     padding: 4
   },
   actionRow: {
-    marginTop: 14
+    marginTop: 12
   },
   actionBtnMessage: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#000000",
-    borderRadius: 10,
-    paddingVertical: 11
+    backgroundColor: "#18181b",
+    borderRadius: 8,
+    paddingVertical: 10
   },
   actionBtnMessageText: {
     color: "#ffffff",
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700"
   },
   callTimestamp: {
-    fontSize: 11,
-    color: "#8e8e93",
+    fontSize: 10,
+    color: "#71717a",
     marginBottom: 6
+  },
+  miniHeader: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#71717a",
+    marginBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.3
+  },
+  checkItemRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6
+  },
+  checkItemText: {
+    fontSize: 12,
+    color: "#18181b",
+    marginLeft: 8
   },
 
   // INSIGHTS & GOALS
-  insightsCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: "#e5e5ea"
-  },
-  insightsPre: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#8e8e93",
-    letterSpacing: 0.6,
-    marginBottom: 4
-  },
-  insightsTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#000000",
-    marginBottom: 6
-  },
-  insightsDesc: {
-    fontSize: 12,
-    color: "#8e8e93",
-    lineHeight: 18
-  },
   meterHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8
+    marginBottom: 6
   },
-  meterRatio: {
+  meterLabel: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#000000"
+    color: "#18181b"
+  },
+  meterRatio: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#18181b"
   },
   progressBarTrack: {
-    height: 8,
-    backgroundColor: "#f2f2f7",
-    borderRadius: 4,
+    height: 7,
+    backgroundColor: "#f4f4f5",
+    borderRadius: 3.5,
     overflow: "hidden"
   },
   progressBarFill: {
     height: "100%",
-    backgroundColor: "#000000",
-    borderRadius: 4
+    backgroundColor: "#18181b",
+    borderRadius: 3.5
   },
   progressNote: {
     fontSize: 11,
-    color: "#8e8e93",
-    marginTop: 8
+    color: "#71717a",
+    marginTop: 6
   },
   timeSavedCard: {
-    backgroundColor: "#000000",
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 14
+    backgroundColor: "#18181b",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12
   },
   timeSavedValue: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "800",
     color: "#ffffff"
   },
   timeSavedLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
-    color: "#aeaeb2",
+    color: "#a1a1aa",
     marginTop: 2
   },
   timeSavedSub: {
     fontSize: 11,
-    color: "#8e8e93",
-    marginTop: 6,
-    lineHeight: 16
+    color: "#71717a",
+    marginTop: 5,
+    lineHeight: 15
   },
   kpiGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
-    marginBottom: 14
+    gap: 8,
+    marginBottom: 12
   },
   kpiBox: {
-    width: "48%",
+    width: "48.5%",
     backgroundColor: "#ffffff",
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1,
-    borderColor: "#e5e5ea"
+    borderColor: "#e4e4e7"
   },
   kpiVal: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "800",
-    color: "#000000"
+    color: "#18181b"
   },
   kpiLabel: {
-    fontSize: 11,
-    color: "#8e8e93",
-    marginTop: 4
+    fontSize: 10,
+    color: "#71717a",
+    marginTop: 2
   },
 
   // PROFILE & SETTINGS
   specBody: {
-    fontSize: 12,
-    color: "#8e8e93",
-    lineHeight: 17,
-    marginBottom: 10
+    fontSize: 11,
+    color: "#71717a",
+    lineHeight: 16,
+    marginBottom: 8
   },
   outlineButton: {
     borderWidth: 1,
-    borderColor: "#000000",
-    borderRadius: 10,
-    paddingVertical: 9,
+    borderColor: "#18181b",
+    borderRadius: 8,
+    paddingVertical: 8,
     alignItems: "center"
   },
   outlineButtonText: {
-    color: "#000000",
-    fontSize: 12,
+    color: "#18181b",
+    fontSize: 11,
     fontWeight: "700"
   },
   dangerOutlineButton: {
     borderWidth: 1,
-    borderColor: "#ff3b30",
-    borderRadius: 10,
-    paddingVertical: 9,
+    borderColor: "#ef4444",
+    borderRadius: 8,
+    paddingVertical: 8,
     alignItems: "center"
   },
   dangerOutlineButtonText: {
-    color: "#ff3b30",
-    fontSize: 12,
+    color: "#ef4444",
+    fontSize: 11,
     fontWeight: "700"
   },
   inputLabel: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#8e8e93",
-    marginBottom: 4
+    color: "#71717a",
+    marginBottom: 3
   },
   configInput: {
-    backgroundColor: "#f2f2f7",
+    backgroundColor: "#f4f4f5",
     borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 7,
     fontSize: 12,
-    color: "#000000"
+    color: "#18181b"
   },
 
   // MODAL SHEET
@@ -2027,65 +1986,65 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.35)",
     justifyContent: "flex-end",
     zIndex: 999
   },
   modalSheet: {
     backgroundColor: "#ffffff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: 30
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    padding: 18,
+    paddingBottom: 28
   },
   modalHandle: {
-    width: 36,
+    width: 34,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#d1d1d6",
+    backgroundColor: "#d4d4d8",
     alignSelf: "center",
-    marginBottom: 14
+    marginBottom: 12
   },
   modalTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "700",
-    color: "#000000"
+    color: "#18181b"
   },
   modalDesc: {
-    fontSize: 12,
-    color: "#8e8e93",
+    fontSize: 11,
+    color: "#71717a",
     marginTop: 2,
-    marginBottom: 16
+    marginBottom: 14
   },
   modalActionButton: {
-    backgroundColor: "#f2f2f7",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    marginBottom: 8
+    backgroundColor: "#f4f4f5",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 7
   },
   modalActionText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
-    color: "#000000"
+    color: "#18181b"
   },
   modalCloseButton: {
     alignItems: "center",
-    paddingVertical: 10,
-    marginTop: 4
+    paddingVertical: 8,
+    marginTop: 2
   },
   modalCloseText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
-    color: "#8e8e93"
+    color: "#71717a"
   },
 
-  // MINIMAL FLOATING NAVBAR
+  // MINIMAL FLOATING NAVBAR (Preserved from user image)
   navbarWrapper: {
     position: "absolute",
-    bottom: 20,
-    left: 16,
-    right: 16,
+    bottom: 18,
+    left: 14,
+    right: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -2096,51 +2055,51 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
-    backgroundColor: "rgba(255, 255, 255, 0.94)",
-    borderRadius: 30,
-    paddingVertical: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.96)",
+    borderRadius: 28,
+    paddingVertical: 5,
     paddingHorizontal: 8,
-    marginRight: 12,
+    marginRight: 10,
     borderWidth: 1,
     borderColor: "rgba(0, 0, 0, 0.06)",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 14,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 6
   },
   capsuleTab: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 20
+    paddingVertical: 7,
+    paddingHorizontal: 9,
+    borderRadius: 18
   },
   capsuleTabActive: {
-    backgroundColor: "#ececec"
+    backgroundColor: "#f4f4f5"
   },
   activeTabLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "700",
-    color: "#000000",
-    marginLeft: 6
+    color: "#18181b",
+    marginLeft: 5
   },
   prominentFab: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "#000000",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#18181b",
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 8
   },
   prominentFabPlus: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "400",
     color: "#ffffff",
     marginTop: -2
