@@ -509,98 +509,118 @@ export default function App() {
 
       {/* MAIN VIEWPORT */}
       <View style={styles.mainViewport}>
-        {/* TAB 1: HOME */}
+        {/* TAB 1: ACTION-FIRST ASSISTANT */}
         {activeTab === "home" && (
           <ScrollView
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
           >
-            {/* HERO CARD: Confident Monochrome Focal Point */}
-            <View style={styles.heroCard}>
-              <View style={styles.heroPreRow}>
-                <View style={styles.emeraldPulse} />
-                <Text style={styles.heroPre}>Groq Whisper v3 • Ready</Text>
+            {/* PINNED SECTION: TODAY'S PRIORITY ACTION ITEMS */}
+            <View style={styles.sectionWrap}>
+              <View style={styles.sectionHeaderRow}>
+                <View style={styles.sectionTitleBlock}>
+                  <Text style={styles.sectionTitle}>Today's Follow-Ups</Text>
+                  <Text style={styles.sectionSubtitle}>Pending tasks extracted from recent calls</Text>
+                </View>
+                <View style={[styles.counterBadge, pendingTasksCount === 0 && styles.counterBadgeDone]}>
+                  <Text style={[styles.counterBadgeText, pendingTasksCount === 0 && styles.counterBadgeTextDone]}>
+                    {pendingTasksCount} pending
+                  </Text>
+                </View>
               </View>
-              <Text style={styles.heroTitle}>Convert recorded calls to actionable notes.</Text>
-              <Text style={styles.heroDesc}>
-                Stateless AI engine extracts summaries, checklists, and instant follow-up drafts directly into phone memory.
+
+              <View style={styles.cardSurface}>
+                {allActionItems.length > 0 ? (
+                  allActionItems.slice(0, 5).map((item, idx) => (
+                    <View key={item.taskId || idx}>
+                      <TouchableOpacity
+                        style={styles.taskItemRow}
+                        onPress={() => handleToggleTask(item.leadId, item.callId, item.taskId)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[styles.taskCheckbox, item.completed && styles.taskCheckboxCompleted]}>
+                          {item.completed && <Text style={styles.taskCheckmark}>✓</Text>}
+                        </View>
+                        <View style={{ flex: 1, paddingRight: 8 }}>
+                          <Text style={[styles.taskItemText, item.completed && styles.taskItemTextCompleted]}>
+                            {item.taskText}
+                          </Text>
+                          <Text style={styles.taskSubText}>
+                            {item.leadName} • {item.dueDate}
+                          </Text>
+                        </View>
+                        {item.draftMessage ? (
+                          <TouchableOpacity
+                            style={styles.taskWhatsAppPill}
+                            onPress={() => handleSendWhatsApp(item.leadPhone, item.draftMessage)}
+                            activeOpacity={0.8}
+                          >
+                            <WhatsAppIcon size={14} color="#25D366" />
+                            <Text style={styles.taskWhatsAppText}>Send</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                      </TouchableOpacity>
+                      {idx < Math.min(allActionItems.length, 5) - 1 && <View style={styles.itemDivider} />}
+                    </View>
+                  ))
+                ) : (
+                  <View style={styles.allClearCard}>
+                    <Text style={styles.allClearIcon}>✓</Text>
+                    <Text style={styles.allClearTitle}>All caught up!</Text>
+                    <Text style={styles.allClearSubtitle}>No pending action items across your contacts.</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* RECORDED CALL INGESTION BAR */}
+            <View style={styles.ingestionCard}>
+              <View style={styles.ingestionHeader}>
+                <View style={styles.ingestionTitleRow}>
+                  <View style={styles.emeraldPulse} />
+                  <Text style={styles.ingestionBadge}>Groq Whisper v3 Ready</Text>
+                </View>
+                <Text style={styles.ingestionLatency}>1.4s Latency</Text>
+              </View>
+              <Text style={styles.ingestionDesc}>
+                Detects newest call in storage and extracts insights to on-device memory.
               </Text>
 
               <TouchableOpacity
-                style={styles.heroPrimaryButton}
+                style={styles.processButtonPrimary}
                 onPress={() => handleProcessRecording()}
                 disabled={isProcessing}
-                activeOpacity={0.88}
+                activeOpacity={0.85}
               >
                 {isProcessing ? (
                   <View style={styles.buttonRow}>
-                    <ActivityIndicator size="small" color="#18181b" />
-                    <Text style={styles.heroButtonText}>Processing Audio with Groq...</Text>
+                    <ActivityIndicator size="small" color="#ffffff" />
+                    <Text style={styles.processButtonText}>Processing Audio with Groq...</Text>
                   </View>
                 ) : (
-                  <Text style={styles.heroButtonText}>Process Latest Call Recording</Text>
+                  <Text style={styles.processButtonText}>⚡ Process Latest Call Recording</Text>
                 )}
               </TouchableOpacity>
             </View>
-
-            {/* ACTION ITEMS CHECKLIST */}
-            {allActionItems.length > 0 && (
-              <View style={styles.sectionWrap}>
-                <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionTitle}>Action Items</Text>
-                  <View style={styles.counterBadge}>
-                    <Text style={styles.counterBadgeText}>{pendingTasksCount} pending</Text>
-                  </View>
-                </View>
-
-                <View style={styles.cardSurface}>
-                  {allActionItems.slice(0, 4).map((item, idx) => (
-                    <TouchableOpacity
-                      key={item.taskId || idx}
-                      style={[
-                        styles.taskItemRow,
-                        idx === allActionItems.slice(0, 4).length - 1 && { borderBottomWidth: 0 }
-                      ]}
-                      onPress={() => handleToggleTask(item.leadId, item.callId, item.taskId)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[styles.taskCheckbox, item.completed && styles.taskCheckboxCompleted]}>
-                        {item.completed && <Text style={styles.taskCheckmark}>✓</Text>}
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.taskItemText, item.completed && styles.taskItemTextCompleted]}>
-                          {item.taskText}
-                        </Text>
-                        <Text style={styles.taskSubText}>
-                          {item.leadName} • {item.dueDate}
-                        </Text>
-                      </View>
-                      {item.draftMessage ? (
-                        <TouchableOpacity
-                          style={styles.taskSendBtn}
-                          onPress={() => handleSendWhatsApp(item.leadPhone, item.draftMessage)}
-                          activeOpacity={0.75}
-                        >
-                          <WhatsAppIcon size={16} color="#25D366" />
-                        </TouchableOpacity>
-                      ) : null}
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            )}
 
             {/* LATEST CALL BRIEFING */}
             {displayAnalysis && (
               <View style={styles.sectionWrap}>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionTitle}>Latest Briefing: {displayAnalysis.callerName}</Text>
+                  <View style={styles.sectionTitleBlock}>
+                    <Text style={styles.sectionTitle}>Latest Briefing: {displayAnalysis.callerName}</Text>
+                    <Text style={styles.sectionSubtitle}>
+                      {displayAnalysis.callerNumber} • {displayAnalysis.callDuration || 135}s duration
+                    </Text>
+                  </View>
                 </View>
 
                 <View style={styles.cardSurface}>
-                  <Text style={styles.briefingHeadline}>
-                    {displayAnalysis.exactSummary?.headline}
-                  </Text>
+                  {displayAnalysis.exactSummary?.headline && (
+                    <Text style={styles.briefingHeadline}>
+                      "{displayAnalysis.exactSummary.headline}"
+                    </Text>
+                  )}
                   {displayAnalysis.exactSummary?.bullets?.map((bullet, idx) => (
                     <View key={idx} style={styles.bulletRow}>
                       <View style={styles.bulletMarker} />
@@ -611,7 +631,10 @@ export default function App() {
                   {/* Suggested WhatsApp Draft Box */}
                   {displayAnalysis.detailedNotes?.suggestedFollowUp?.draftMessage && (
                     <View style={styles.draftBox}>
-                      <Text style={styles.draftBoxLabel}>Suggested Follow-Up Draft</Text>
+                      <View style={styles.draftBoxHeader}>
+                        <WhatsAppIcon size={14} color="#25D366" />
+                        <Text style={styles.draftBoxLabel}>Suggested WhatsApp Follow-Up</Text>
+                      </View>
                       <Text style={styles.draftBoxBody}>
                         "{displayAnalysis.detailedNotes.suggestedFollowUp.draftMessage}"
                       </Text>
@@ -623,7 +646,7 @@ export default function App() {
                         )}
                         activeOpacity={0.85}
                       >
-                        <WhatsAppIcon size={16} color="#25D366" />
+                        <WhatsAppIcon size={16} color="#ffffff" />
                         <Text style={styles.sendWhatsAppText}>Dispatch via WhatsApp</Text>
                       </TouchableOpacity>
                     </View>
@@ -632,70 +655,78 @@ export default function App() {
               </View>
             )}
 
-            {/* RECENT CALL INTERACTIONS FEED */}
+            {/* RECENT CALL INTERACTIONS FEED (NATIVE GROUPED TABLE) */}
             {leads.length > 0 && (
               <View style={styles.sectionWrap}>
                 <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.sectionTitle}>Recent Conversations</Text>
+                  <View style={styles.sectionTitleBlock}>
+                    <Text style={styles.sectionTitle}>Recent Conversations</Text>
+                    <Text style={styles.sectionSubtitle}>{totalCallsCount} total logged calls</Text>
+                  </View>
                   <TouchableOpacity onPress={() => setActiveTab("history")} activeOpacity={0.7}>
-                    <Text style={styles.seeAllLink}>View All ({totalCallsCount})</Text>
+                    <Text style={styles.seeAllLink}>See All ›</Text>
                   </TouchableOpacity>
                 </View>
 
-                {leads.slice(0, 3).map((lead) => {
-                  const latestCall = lead.calls?.[0];
-                  return (
-                    <View key={lead.id} style={styles.callFeedCard}>
-                      <View style={styles.callFeedTop}>
-                        <Text style={styles.feedName}>{lead.name}</Text>
-                        <Text style={styles.feedMeta}>
-                          {lead.company} • {latestCall ? `${latestCall.durationSeconds}s call` : "New Contact"}
-                        </Text>
-                      </View>
+                <View style={styles.cardSurface}>
+                  {leads.slice(0, 4).map((lead, idx) => {
+                    const latestCall = lead.calls?.[0];
+                    return (
+                      <View key={lead.id}>
+                        <View style={styles.groupedFeedRow}>
+                          <View style={styles.feedLeadInfo}>
+                            <View style={styles.feedLeadNameRow}>
+                              <Text style={styles.feedName}>{lead.name}</Text>
+                              <Text style={styles.feedCallTime}>
+                                {latestCall ? `${latestCall.durationSeconds}s` : "New"}
+                              </Text>
+                            </View>
+                            <Text style={styles.feedPhone}>{lead.phone} • {lead.company || "Individual"}</Text>
 
-                      {latestCall?.exactSummary?.headline && (
-                        <View style={styles.quoteWrap}>
-                          <Text style={styles.feedHeadline} numberOfLines={2}>
-                            "{latestCall.exactSummary.headline}"
-                          </Text>
+                            {latestCall?.exactSummary?.headline && (
+                              <Text style={styles.feedSummarySnippet} numberOfLines={2}>
+                                {latestCall.exactSummary.headline}
+                              </Text>
+                            )}
+                          </View>
+
+                          <View style={styles.feedActionsCol}>
+                            <TouchableOpacity
+                              style={styles.actionWhatsAppIconBtn}
+                              onPress={() => {
+                                const draft = latestCall?.detailedNotes?.suggestedFollowUp?.draftMessage || "Hello";
+                                handleSendWhatsApp(lead.phone, draft);
+                              }}
+                              activeOpacity={0.8}
+                            >
+                              <WhatsAppIcon size={16} color="#25D366" />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              style={styles.actionDetailPill}
+                              onPress={() => {
+                                setSelectedLead(lead);
+                                setActiveTab("history");
+                              }}
+                              activeOpacity={0.75}
+                            >
+                              <Text style={styles.actionDetailText}>Notes</Text>
+                            </TouchableOpacity>
+                          </View>
                         </View>
-                      )}
-
-                      <View style={styles.feedActionButtons}>
-                        <TouchableOpacity
-                          style={styles.feedBtnMessage}
-                          onPress={() => {
-                            const draft = latestCall?.detailedNotes?.suggestedFollowUp?.draftMessage || "Hello";
-                            handleSendWhatsApp(lead.phone, draft);
-                          }}
-                          activeOpacity={0.85}
-                        >
-                          <WhatsAppIcon size={16} color="#25D366" />
-                          <Text style={styles.feedBtnMessageText}>WhatsApp</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={styles.feedBtnDetails}
-                          onPress={() => {
-                            setSelectedLead(lead);
-                            setActiveTab("history");
-                          }}
-                          activeOpacity={0.75}
-                        >
-                          <Text style={styles.feedBtnDetailsText}>Notes ›</Text>
-                        </TouchableOpacity>
+                        {idx < Math.min(leads.length, 4) - 1 && <View style={styles.itemDivider} />}
                       </View>
-                    </View>
-                  );
-                })}
+                    );
+                  })}
+                </View>
               </View>
             )}
 
-            {/* QUICK STATS STRIP */}
+            {/* NATIVE SYSTEM HEALTH STRIP */}
             <View style={styles.statsStrip}>
               <View style={styles.statCell}>
                 <Text style={styles.statNumber}>{leads.length}</Text>
-                <Text style={styles.statLabel}>Contacts Stored</Text>
+                <Text style={styles.statLabel}>Contacts</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statCell}>
@@ -705,7 +736,7 @@ export default function App() {
               <View style={styles.statDivider} />
               <View style={styles.statCell}>
                 <Text style={styles.statNumber}>1.4s</Text>
-                <Text style={styles.statLabel}>Groq Latency</Text>
+                <Text style={styles.statLabel}>Whisper Groq</Text>
               </View>
             </View>
           </ScrollView>
@@ -1347,7 +1378,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     height: "100%",
-    backgroundColor: "#fafafa",
+    backgroundColor: "#f2f2f7",
     overflow: "hidden"
   },
   topBar: {
@@ -1359,7 +1390,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     backgroundColor: "#ffffff",
     borderBottomWidth: 1,
-    borderBottomColor: "#f4f4f5"
+    borderBottomColor: "#e5e5ea"
   },
   brandTitleRow: {
     flexDirection: "row",
@@ -1474,14 +1505,18 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
 
-  // CARD SURFACES (Modern Minimalist Base)
+  // CARD SURFACES (Native Grouped Inset Style)
   cardSurface: {
     backgroundColor: "#ffffff",
-    borderRadius: 14,
-    padding: 15,
-    marginBottom: 12,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: "#e4e4e7"
+    borderColor: "rgba(0, 0, 0, 0.05)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 5
   },
   cardHeaderRow: {
     flexDirection: "row",
@@ -1560,221 +1595,321 @@ const styles = StyleSheet.create({
     color: "#71717a"
   },
 
-  // ACTION TASKS CHECKLIST
+  // ACTION TASKS CHECKLIST (APPLE GROUPED INSET STYLE)
   taskItemRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 9,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f4f4f5"
+    paddingVertical: 11,
+    paddingHorizontal: 2
   },
   taskCheckbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 1.8,
-    borderColor: "#a1a1aa",
+    borderColor: "#c7c7cc",
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12
   },
   taskCheckboxCompleted: {
-    backgroundColor: "#18181b",
-    borderColor: "#18181b"
+    backgroundColor: "#34c759",
+    borderColor: "#34c759"
   },
   taskCheckmark: {
     color: "#ffffff",
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "800"
   },
   taskItemText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
-    color: "#18181b",
-    lineHeight: 18
+    color: "#1c1c1e",
+    lineHeight: 19
   },
   taskItemTextCompleted: {
-    color: "#a1a1aa",
+    color: "#8e8e93",
     textDecorationLine: "line-through"
   },
   taskSubText: {
-    fontSize: 11,
-    color: "#71717a",
+    fontSize: 12,
+    color: "#8e8e93",
     marginTop: 2
   },
-  taskSendBtn: {
-    backgroundColor: "#f4f4f5",
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 8,
-    marginLeft: 8,
+  taskWhatsAppPill: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center"
+    backgroundColor: "#e8f9ed",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 12,
+    marginLeft: 8
   },
-  counterBadge: {
-    backgroundColor: "#f4f4f5",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8
-  },
-  counterBadgeText: {
-    fontSize: 10,
+  taskWhatsAppText: {
+    fontSize: 11,
     fontWeight: "700",
-    color: "#18181b"
+    color: "#128C7E",
+    marginLeft: 4
+  },
+  itemDivider: {
+    height: 1,
+    backgroundColor: "#f2f2f7",
+    marginLeft: 32
+  },
+  allClearCard: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 20
+  },
+  allClearIcon: {
+    fontSize: 22,
+    color: "#34c759",
+    fontWeight: "800",
+    marginBottom: 4
+  },
+  allClearTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1c1c1e"
+  },
+  allClearSubtitle: {
+    fontSize: 12,
+    color: "#8e8e93",
+    marginTop: 2
   },
 
-  // SECTION STYLING
+  // SECTION STYLING (NATIVE GROUPED HEADER)
   sectionWrap: {
-    marginBottom: 12
+    marginBottom: 16
   },
   sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8
+    alignItems: "flex-end",
+    marginBottom: 8,
+    paddingHorizontal: 2
+  },
+  sectionTitleBlock: {
+    flex: 1
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "700",
-    color: "#18181b",
-    letterSpacing: -0.2
+    color: "#000000",
+    letterSpacing: -0.3
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    color: "#8e8e93",
+    marginTop: 1
   },
   seeAllLink: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#007aff",
+    marginBottom: 2
+  },
+  counterBadge: {
+    backgroundColor: "#f2f2f7",
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 10
+  },
+  counterBadgeDone: {
+    backgroundColor: "#e8f9ed"
+  },
+  counterBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#1c1c1e"
+  },
+  counterBadgeTextDone: {
+    color: "#128C7E"
+  },
+
+  // RECORDED CALL INGESTION BAR
+  ingestionCard: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4
+  },
+  ingestionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6
+  },
+  ingestionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center"
+  },
+  ingestionBadge: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#1c1c1e"
+  },
+  ingestionLatency: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#71717a"
+    color: "#8e8e93"
+  },
+  ingestionDesc: {
+    fontSize: 12,
+    color: "#636366",
+    lineHeight: 17,
+    marginBottom: 12
+  },
+  processButtonPrimary: {
+    backgroundColor: "#1c1c1e",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  processButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: -0.2
   },
 
   // BRIEFING CARD
   briefingHeadline: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#18181b",
+    color: "#1c1c1e",
     lineHeight: 19,
     marginBottom: 8
   },
   bulletRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginTop: 5
+    marginTop: 6
   },
   bulletMarker: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#18181b",
+    backgroundColor: "#007aff",
     marginTop: 7,
     marginRight: 8
   },
   bulletText: {
-    fontSize: 12,
-    color: "#3f3f46",
+    fontSize: 13,
+    color: "#3a3a3c",
     lineHeight: 18,
     flex: 1
   },
   draftBox: {
-    marginTop: 10,
+    marginTop: 12,
     padding: 12,
-    backgroundColor: "#f4f4f5",
-    borderRadius: 10
+    backgroundColor: "#f8f9fa",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#ebebef"
+  },
+  draftBoxHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6
   },
   draftBoxLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
-    color: "#71717a",
-    marginBottom: 4,
+    color: "#128C7E",
+    marginLeft: 5,
     textTransform: "uppercase",
     letterSpacing: 0.3
   },
   draftBoxBody: {
-    fontSize: 12,
-    color: "#18181b",
+    fontSize: 13,
+    color: "#1c1c1e",
     fontStyle: "italic",
-    lineHeight: 17,
-    marginBottom: 8
+    lineHeight: 18,
+    marginBottom: 10
   },
   sendWhatsAppButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    backgroundColor: "#18181b",
-    borderRadius: 8,
-    paddingVertical: 9
+    backgroundColor: "#25D366",
+    borderRadius: 10,
+    paddingVertical: 10
   },
   sendWhatsAppText: {
     color: "#ffffff",
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "700"
   },
 
-  // RECENT CONVERSATIONS FEED
-  callFeedCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#e4e4e7"
+  // GROUPED CALL INTERACTIONS FEED (NATIVE TABLE VIEW)
+  groupedFeedRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    paddingVertical: 12
   },
-  callFeedTop: {
-    marginBottom: 6
+  feedLeadInfo: {
+    flex: 1,
+    paddingRight: 12
   },
-  feedName: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#18181b"
-  },
-  feedMeta: {
-    fontSize: 11,
-    color: "#71717a",
-    marginTop: 1
-  },
-  quoteWrap: {
-    borderLeftWidth: 2,
-    borderLeftColor: "#e4e4e7",
-    paddingLeft: 8,
-    marginVertical: 6
-  },
-  feedHeadline: {
-    fontSize: 12,
-    color: "#3f3f46",
-    lineHeight: 17,
-    fontStyle: "italic"
-  },
-  feedActionButtons: {
+  feedLeadNameRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 6
+    marginBottom: 2
   },
-  feedBtnMessage: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 7,
-    backgroundColor: "#18181b",
-    borderRadius: 8,
-    paddingVertical: 8,
-    marginRight: 8
-  },
-  feedBtnMessageText: {
-    fontSize: 12,
+  feedName: {
+    fontSize: 15,
     fontWeight: "700",
-    color: "#ffffff"
+    color: "#1c1c1e"
   },
-  feedBtnDetails: {
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    backgroundColor: "#f4f4f5",
-    borderRadius: 8,
-    justifyContent: "center"
-  },
-  feedBtnDetailsText: {
+  feedCallTime: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#3f3f46"
+    color: "#8e8e93"
+  },
+  feedPhone: {
+    fontSize: 12,
+    color: "#8e8e93",
+    marginBottom: 5
+  },
+  feedSummarySnippet: {
+    fontSize: 12,
+    color: "#48484a",
+    lineHeight: 16
+  },
+  feedActionsCol: {
+    alignItems: "center",
+    gap: 8,
+    paddingTop: 2
+  },
+  actionWhatsAppIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#e8f9ed",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  actionDetailPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: "#f2f2f7"
+  },
+  actionDetailText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#007aff"
   },
 
   // EMPTY STATE
