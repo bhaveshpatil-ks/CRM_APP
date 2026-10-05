@@ -459,8 +459,8 @@ export default function App() {
           <View style={styles.splashLogoWrapper}>
             <AppLogo size={88} />
           </View>
-          <Text style={styles.splashTitle}>Call Intelligence</Text>
-          <Text style={styles.splashSubtitle}>Autonomous On-Device AI CRM</Text>
+          <Text style={styles.splashTitle}>CRM</Text>
+          <Text style={styles.splashSubtitle}>Autonomous On-Device AI</Text>
 
           <View style={styles.splashLoaderTrack}>
             <View style={styles.splashLoaderFill} />
@@ -480,16 +480,11 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fafafa" />
 
-      {/* TOP HEADER: Clean Editorial Hierarchy with App Logo */}
+      {/* TOP HEADER: Clean Typography with Official App Logo */}
       <View style={styles.topBar}>
         <View style={styles.brandTitleRow}>
           <AppLogo size={28} />
-          <View style={{ marginLeft: 10 }}>
-            <Text style={styles.brandTitle}>Call Intelligence</Text>
-            <Text style={styles.brandSubtitle}>
-              {session ? session.user?.companyName || "Connected to Website" : "Groq 1.4s Engine • On-Device Private"}
-            </Text>
-          </View>
+          <Text style={styles.brandTitle}>CRM</Text>
         </View>
 
         {session ? (
@@ -546,53 +541,6 @@ export default function App() {
                   <Text style={styles.heroButtonText}>Process Latest Call Recording</Text>
                 )}
               </TouchableOpacity>
-            </View>
-
-            {/* AUDIO INTELLIGENCE & WAVEFORM LAB WIDGET */}
-            <View style={styles.cardSurface}>
-              <View style={styles.cardHeaderRow}>
-                <View>
-                  <Text style={styles.cardTitle}>Audio Recording Lab</Text>
-                  <Text style={styles.cardSubtitle}>
-                    {displayAnalysis?.callerName
-                      ? `rec_${displayAnalysis.callerName.toLowerCase().replace(/\s+/g, "_")}.m4a`
-                      : "call_rec_9820045120.m4a"}
-                  </Text>
-                </View>
-                <View style={styles.aiBadge}>
-                  <View style={styles.aiBadgeDot} />
-                  <Text style={styles.aiBadgeText}>1.4s Groq</Text>
-                </View>
-              </View>
-
-              <View style={styles.waveformContainer}>
-                <TouchableOpacity
-                  style={styles.playButton}
-                  onPress={() => setIsPlayingAudio(!isPlayingAudio)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.playButtonIcon}>{isPlayingAudio ? "⏸" : "▶"}</Text>
-                </TouchableOpacity>
-
-                <View style={styles.barsContainer}>
-                  {[16, 28, 14, 36, 22, 42, 54, 30, 46, 58, 34, 24, 48, 38, 56, 26, 18].map((h, i) => (
-                    <View
-                      key={i}
-                      style={[
-                        styles.waveformBar,
-                        {
-                          height: isPlayingAudio
-                            ? Math.min(36, Math.max(8, h * (0.75 + ((i % 3) * 0.2))))
-                            : h * 0.55,
-                          backgroundColor: i < 9 ? "#18181b" : "#d4d4d8"
-                        }
-                      ]}
-                    />
-                  ))}
-                </View>
-
-                <Text style={styles.timeTracker}>{isPlayingAudio ? "01:42" : "02:15"}</Text>
-              </View>
             </View>
 
             {/* ACTION ITEMS CHECKLIST */}
@@ -1418,15 +1366,12 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   brandTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#18181b",
-    letterSpacing: -0.3
-  },
-  brandSubtitle: {
-    fontSize: 11,
-    color: "#71717a",
-    marginTop: 1
+    marginLeft: 10,
+    fontSize: 20,
+    fontWeight: "900",
+    color: "#09090b",
+    letterSpacing: 1.8,
+    textTransform: "uppercase"
   },
   userBadge: {
     flexDirection: "row",
